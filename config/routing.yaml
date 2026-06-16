@@ -4,33 +4,23 @@
 # Priority chain (SDD §4):
 #   Gemini → Groq → Ollama (if healthy) → OpenRouter → Claude API (if budget allows)
 
-task_types:
-  research:
-    description: "Long-form research synthesis"
-    primary: gemini
-    fallback_chain: [groq, openrouter, claude]
-    context_size: large
+routing:
+  default_chain:
+    - gemini
+    - groq
+    - ollama
+    - openrouter
+    - claude
 
-  fast_lookup:
-    description: "Quick structured answer, low latency"
-    primary: groq
-    fallback_chain: [gemini, openrouter, claude]
-    context_size: small
-
-  local_inference:
-    description: "Private/local tasks only"
-    primary: ollama
-    fallback_chain: [gemini, groq, openrouter]
-    context_size: small
-
-  general:
-    description: "Default routing — follows standard priority chain"
-    primary: gemini
-    fallback_chain: [groq, ollama, openrouter, claude]
-    context_size: medium
-
-# Default fallback behavior
-default_task_type: general
-
-# Provider exhaustion
-on_all_exhausted: "raise ProviderExhaustedError"
+  task_overrides:
+    research:
+      - gemini
+      - openrouter
+      - claude
+    fast_lookup:
+      - groq
+      - gemini
+      - openrouter
+    local_inference:
+      - ollama
+      - groq

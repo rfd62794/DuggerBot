@@ -3,65 +3,53 @@
 
 providers:
   gemini:
-    name: "Gemini Flash"
-    tier: "free_first"
-    role: "primary_inference"
-    base_url: "https://generativelanguage.googleapis.com"
+    role: primary
     models:
-      - "gemini-2.0-flash"
-    limits:
-      requests_per_day: 1500
-      tokens_per_minute: 1000000
-      requests_per_minute: 15
-    cost_per_1k_tokens: 0.0  # Free tier
-    env_key: "GEMINI_API_KEY"
+      - gemini-2.0-flash
+      - gemini-1.5-flash
+    free_tier:
+      rpd: 1500
+      rpm: 15
+      tpm: 1000000
+    cost_per_1k_tokens: 0.0
+    enabled: true
+    health_endpoint: "https://generativelanguage.googleapis.com/v1beta/models"
 
   groq:
-    name: "Groq"
-    tier: "free"
-    role: "speed_tier"
-    base_url: "https://api.groq.com/openai/v1"
+    role: speed
     models:
-      - "llama-3.1-70b-versatile"
-      - "llama-3.1-8b-instant"
-    limits:
-      requests_per_day: 6000
-      requests_per_minute: 30
-    cost_per_1k_tokens: 0.0  # Free tier
-    env_key: "GROQ_API_KEY"
+      - llama-3.1-70b-versatile
+      - mixtral-8x7b-32768
+    free_tier:
+      rpd: 6000
+      rpm: 30
+    cost_per_1k_tokens: 0.0
+    enabled: true
+    health_endpoint: "https://api.groq.com/openai/v1/models"
 
   openrouter:
-    name: "OpenRouter"
-    tier: "pay_as_you_go"
-    role: "access_tier"
-    base_url: "https://openrouter.ai/api/v1"
-    models: []  # Varies — selected per task
-    limits: {}  # Model-dependent
-    cost_per_1k_tokens: null  # Varies by model
-    env_key: "OPENROUTER_API_KEY"
+    role: access
+    models:
+      - meta-llama/llama-3.1-70b-instruct
+    cost_per_1k_tokens: 0.001
+    enabled: true
+    health_endpoint: "https://openrouter.ai/api/v1/models"
 
   ollama:
-    name: "Ollama"
-    tier: "free_local"
-    role: "fallback"
-    base_url: "${OLLAMA_HOST}"  # Resolved from .env.local
+    role: local
     models:
-      tower: "phi3.5:3.8b"
-      nitro5: "${OLLAMA_MODEL}"  # Resolved from .env.local
-    limits: {}  # Hardware-limited
+      - phi3.5:3.8b
     cost_per_1k_tokens: 0.0
-    keep_alive: -1  # Mandatory — ADR-002
-    warmup_on_start: true  # Mandatory — ADR-002
+    enabled: true
+    health_endpoint: "http://localhost:11434/api/tags"
+    keep_alive: -1
 
   claude:
-    name: "Claude API"
-    tier: "paid"
-    role: "reserved"
-    base_url: "https://api.anthropic.com"
+    role: reserved
     models:
-      - "claude-sonnet-4-20250514"
-    limits:
-      daily_cap_usd: 0.25  # ADR-005 — hard cap enforced by UsageLedger
+      - claude-sonnet-4-6
+    daily_cap_usd: 0.25
     cost_per_1k_input_tokens: 0.003
     cost_per_1k_output_tokens: 0.015
-    env_key: "ANTHROPIC_API_KEY"
+    enabled: true
+    health_endpoint: "https://api.anthropic.com/v1/models"
