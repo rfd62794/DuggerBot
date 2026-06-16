@@ -784,7 +784,7 @@ These must be resolved before the phase that depends on them. They do not block 
 
 | ID | Question | Blocks | Resolution Path |
 |---|---|---|---|
-| OQ-001 | MCP server transport: SSE (matching PrivyBot's mcp-proxy pattern at 8090) or stdio? | Phase 2 | Recommendation: SSE. Consistent with Claude Desktop config. Confirm before Phase 2 directive. |
+| OQ-001 | MCP server transport: SSE or stdio? | Phase 2 | **RESOLVED: SSE, port 8001.** stdio dies when Nitro 5 reaches Tower over Tailscale. SSE is the only option for the twin architecture. Resolved 2026-06-15. |
 | OQ-002 | Nitro 5 Ollama model: phi3.5:3.8b or qwen2.5:3b? | Phase 1 completion | Benchmark both on Nitro 5 hardware during Phase 1. Pick faster loader. |
 | OQ-003 | SharedState read pattern: direct Tailscale SQLite file access, or REST API on Tower? | Phase 3 | Recommendation: REST API endpoint on Tower. More explicit, easier to test, no file locking issues. |
 | OQ-004 | RALPH morning dispatch delivery: Telegram push or MCP tool Claude pulls? | Phase 4 | Recommendation: both. Telegram push is primary. MCP `get_morning_dispatch()` tool is secondary. |
