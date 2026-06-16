@@ -50,6 +50,8 @@ SOUL.md
 
 # Private Scripts
 scripts/*.ps1
+!scripts/initialize.ps1
+!scripts/nssm_deploy.ps1
 scripts/*.sh
 
 # Memory
