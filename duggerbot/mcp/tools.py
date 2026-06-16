@@ -122,4 +122,18 @@ def get_dev_tool_list() -> list[Tool]:
                 "properties": {},
             },
         ),
+        Tool(
+            name="read_file",
+            description="Read a file by absolute or repo-relative path. Returns file content as text.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "Absolute path or path relative to repo root.",
+                    },
+                },
+                "required": ["path"],
+            },
+        ),
     ]

@@ -217,6 +217,30 @@ async def handle_check_for_update(arguments: dict) -> list[TextContent]:
     }))]
 
 
+async def handle_read_file(arguments: dict) -> list[TextContent]:
+    """Read a file by absolute or repo-relative path. Returns content as text."""
+    file_path = arguments.get("path", "")
+    if not file_path:
+        return [TextContent(type="text", text=json.dumps({"error": "path is required"}))]
+    p = Path(file_path)
+    if not p.is_absolute():
+        p = Path.cwd() / p
+    if not p.exists():
+        return [TextContent(type="text", text=json.dumps({"error": f"File not found: {p}"}))]
+    if not p.is_file():
+        return [TextContent(type="text", text=json.dumps({"error": f"Not a file: {p}"}))]
+    try:
+        content = p.read_text(encoding="utf-8")
+    except Exception as e:
+        return [TextContent(type="text", text=json.dumps({"error": str(e)}))]
+    return [TextContent(type="text", text=json.dumps({
+        "path": str(p),
+        "content": content,
+        "lines": len(content.splitlines()),
+        "error": None,
+    }))]
+
+
 # ---------------------------------------------------------------------------
 # Dispatch table
 # ---------------------------------------------------------------------------
@@ -229,4 +253,5 @@ DEV_TOOL_HANDLERS = {
     "get_migration_manifest": handle_get_migration_manifest,
     "get_version": handle_get_version,
     "check_for_update": handle_check_for_update,
+    "read_file": handle_read_file,
 }
