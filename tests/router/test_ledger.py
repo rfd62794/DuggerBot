@@ -61,6 +61,18 @@ async def test_check_budget_exceeds_cap(ledger):
         await ledger.check_budget("claude", daily_cap_usd=0.25, estimated_cost=0.10)
 
 
+async def test_get_daily_summary(ledger):
+    """get_daily_summary returns correct aggregation for today."""
+    await ledger.record_call("claude", "claude-sonnet-4-6", tokens_in=100, tokens_out=50, cost_usd=0.05)
+    await ledger.record_call("gemini", "gemini-2.0-flash", tokens_in=200, tokens_out=100, cost_usd=0.00)
+    summary = await ledger.get_daily_summary()
+    assert "claude" in summary
+    assert "gemini" in summary
+    assert summary["claude"]["calls"] == 1
+    assert summary["claude"]["cost_usd"] == 0.05
+    assert summary["gemini"]["tokens_in"] == 200
+
+
 async def test_daily_rollover(ledger):
     """Record with yesterday's date does not count toward today's cap."""
     yesterday = "2020-01-01"

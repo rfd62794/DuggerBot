@@ -106,6 +106,39 @@ async def test_claude_budget_exceeded_skipped(
     assert result.provider != "claude"
 
 
+async def test_claude_routes_with_budget_remaining(
+    providers_yaml, routing_yaml, mock_http_client, ledger
+):
+    """Claude routes successfully and reports budget_remaining_usd."""
+    call_count = 0
+
+    async def handler(request):
+        nonlocal call_count
+        call_count += 1
+        if call_count <= 4:
+            return httpx.Response(503)
+        return httpx.Response(200)
+
+    router = await _make_router(providers_yaml, routing_yaml, handler, mock_http_client, ledger)
+    request = TaskRequest(task_type=TaskType.GENERAL, prompt="test")
+    result = await router.route(request)
+    assert result.provider == "claude"
+    assert result.budget_remaining_usd == 0.25
+
+
+async def test_from_config(providers_yaml, routing_yaml, mock_http_client, ledger):
+    """from_config classmethod creates a functional router."""
+    async def handler(request):
+        return httpx.Response(200)
+
+    client = mock_http_client(handler)
+    health = HealthChecker(client)
+    router = ModelRouter.from_config(providers_yaml, routing_yaml, health, ledger)
+    request = TaskRequest(task_type=TaskType.GENERAL, prompt="test")
+    result = await router.route(request)
+    assert result.provider == "gemini"
+
+
 async def test_fallback_chain_recorded(
     providers_yaml, routing_yaml, mock_http_client, ledger
 ):
