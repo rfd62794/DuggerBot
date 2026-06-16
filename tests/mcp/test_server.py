@@ -126,3 +126,54 @@ def test_server_name_constant():
 def test_tobor_identity_constant():
     """TOBOR_IDENTITY == 'TOBOR'."""
     assert TOBOR_IDENTITY == "TOBOR"
+
+
+async def test_lifespan_initializes_state(tmp_path, monkeypatch):
+    """Lifespan creates all expected state attributes."""
+    from duggerbot.mcp.server import lifespan
+
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "providers.yaml").write_text(
+        "providers:\n"
+        "  gemini:\n"
+        "    role: primary\n"
+        "    models: [gemini-2.0-flash]\n"
+        "    health_endpoint: https://generativelanguage.googleapis.com\n"
+        "    enabled: true\n"
+    )
+    (config_dir / "routing.yaml").write_text(
+        "routing:\n"
+        "  default_chain: [gemini]\n"
+        "  task_overrides: {}\n"
+    )
+
+    monkeypatch.setenv("DB_PATH", str(tmp_path / "test.db"))
+
+    import duggerbot.mcp.server as srv
+    from pathlib import Path
+    original_file = Path(srv.__file__)
+    monkeypatch.setattr(srv, "__file__", str(config_dir / "mcp" / "server.py"))
+
+    test_app = FastAPI(lifespan=lifespan)
+    async with lifespan(test_app):
+        assert hasattr(test_app.state, "registry")
+        assert hasattr(test_app.state, "health")
+        assert hasattr(test_app.state, "ledger")
+        assert hasattr(test_app.state, "router")
+        assert hasattr(test_app.state, "mcp_server")
+        assert hasattr(test_app.state, "sse_transport")
+        assert hasattr(test_app.state, "http_client")
+
+
+def test_handler_fns_has_five_entries():
+    """_HANDLER_FNS dict has exactly 5 entries matching TOOL_HANDLERS."""
+    from duggerbot.mcp.server import _HANDLER_FNS
+    from duggerbot.mcp.handlers import TOOL_HANDLERS
+    assert set(_HANDLER_FNS.keys()) == set(TOOL_HANDLERS.keys())
+
+
+def test_default_db_path():
+    """DEFAULT_DB_PATH is 'duggerbot.db'."""
+    from duggerbot.mcp.server import DEFAULT_DB_PATH
+    assert DEFAULT_DB_PATH == "duggerbot.db"

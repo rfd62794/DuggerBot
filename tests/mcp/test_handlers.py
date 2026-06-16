@@ -182,6 +182,38 @@ async def test_get_cost_today_includes_remaining():
     assert data["remaining_usd"] == 0.15
 
 
+async def test_fast_lookup_provider_exhausted_returns_error():
+    """ProviderExhaustedError in fast_lookup → TextContent with error."""
+    router = _mock_router_exhausted()
+    result = await handle_fast_lookup(router, {"query": "test"})
+    data = json.loads(result[0].text)
+    assert "error" in data
+
+
+async def test_fast_lookup_budget_exceeded_returns_error():
+    """BudgetExceededError in fast_lookup → TextContent with error."""
+    router = _mock_router_budget_exceeded()
+    result = await handle_fast_lookup(router, {"query": "test"})
+    data = json.loads(result[0].text)
+    assert "error" in data
+
+
+async def test_local_inference_provider_exhausted_returns_error():
+    """ProviderExhaustedError in local_inference → TextContent with error."""
+    router = _mock_router_exhausted()
+    result = await handle_local_inference(router, {"prompt": "test"})
+    data = json.loads(result[0].text)
+    assert "error" in data
+
+
+async def test_local_inference_budget_exceeded_returns_error():
+    """BudgetExceededError in local_inference → TextContent with error."""
+    router = _mock_router_budget_exceeded()
+    result = await handle_local_inference(router, {"prompt": "test"})
+    data = json.loads(result[0].text)
+    assert "error" in data
+
+
 async def test_unknown_tool_raises_value_error():
     """Calling dispatch with unknown name → ValueError."""
     assert "nonexistent" not in TOOL_HANDLERS
