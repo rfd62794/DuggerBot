@@ -61,3 +61,49 @@ def get_tool_list() -> list[Tool]:
             },
         ),
     ]
+
+
+def get_dev_tool_list() -> list[Tool]:
+    """Return five developer tool definitions. Read-only, no provider calls."""
+    return [
+        Tool(
+            name="verify_test_floor",
+            description="Run pytest and return pass/fail/skip counts with floor_met bool.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+        ),
+        Tool(
+            name="check_coverage",
+            description="Run coverage and return per-module percentages with floor_met bool.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+        ),
+        Tool(
+            name="get_project_state",
+            description="Read docs/state/current.md and return structured phase state.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+        ),
+        Tool(
+            name="get_open_issues",
+            description="Read docs/issues/ and return list of open issues with severity.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+        ),
+        Tool(
+            name="get_migration_manifest",
+            description="Read migration_manifest.json and return tool utilization data.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+        ),
+    ]

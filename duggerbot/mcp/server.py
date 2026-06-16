@@ -14,6 +14,7 @@ from mcp.types import TextContent
 
 from duggerbot.mcp.auth import verify_token
 from duggerbot.mcp.handlers import (
+    DEV_TOOL_HANDLERS,
     TOOL_HANDLERS,
     handle_fast_lookup,
     handle_get_cost_today,
@@ -21,7 +22,7 @@ from duggerbot.mcp.handlers import (
     handle_local_inference,
     handle_research,
 )
-from duggerbot.mcp.tools import get_tool_list
+from duggerbot.mcp.tools import get_dev_tool_list, get_tool_list
 from duggerbot.router.health import HealthChecker
 from duggerbot.router.ledger import UsageLedger
 from duggerbot.router.registry import ProviderRegistry
@@ -74,10 +75,12 @@ async def lifespan(app: FastAPI):
 
     @mcp_server.list_tools()
     async def list_tools():
-        return get_tool_list()
+        return get_tool_list() + get_dev_tool_list()
 
     @mcp_server.call_tool()
     async def call_tool(name: str, arguments: dict) -> list[TextContent]:
+        if name in DEV_TOOL_HANDLERS:
+            return await DEV_TOOL_HANDLERS[name](arguments)
         if name not in TOOL_HANDLERS:
             raise ValueError(f"Unknown tool: {name}")
         handler_name = TOOL_HANDLERS[name]

@@ -15,6 +15,7 @@ from duggerbot.router.router import ModelRouter
 from duggerbot.router.health import HealthChecker
 from duggerbot.router.ledger import UsageLedger
 from duggerbot.router.registry import ProviderRegistry
+from duggerbot.mcp.dev_tools import DEV_TOOL_HANDLERS  # noqa: F401 — re-exported for server.py
 
 
 async def handle_research(
