@@ -12,11 +12,16 @@ from duggerbot.mcp.dev_tools import (
     _run_command,
     handle_check_coverage,
     handle_check_for_update,
+    handle_delete_context,
+    handle_dispatch_to_cline,
     handle_get_migration_manifest,
     handle_get_open_issues,
     handle_get_project_state,
     handle_get_version,
+    handle_list_context,
+    handle_read_context,
     handle_verify_test_floor,
+    handle_write_context,
 )
 
 
@@ -320,3 +325,52 @@ async def test_check_for_update_update_available_true():
         result = await handle_check_for_update({})
         data = json.loads(result[0].text)
         assert data["update_available"] is True
+
+
+# ---------------------------------------------------------------------------
+# Phase 3.8 — Context store + Cline dispatch handlers
+# ---------------------------------------------------------------------------
+
+
+async def test_handle_write_context_returns_written_true():
+    """write_context mocked → handler returns {"written": True}."""
+    with patch("duggerbot.mcp.dev_tools.write_context", new_callable=AsyncMock):
+        result = await handle_write_context({"key": "test_key", "value": "test_val"})
+        data = json.loads(result[0].text)
+        assert data["written"] is True
+        assert data["key"] == "test_key"
+
+
+async def test_handle_read_context_returns_value_when_found():
+    """read_context returns 'val' → handler returns {"found": True, "value": "val"}."""
+    with patch("duggerbot.mcp.dev_tools.read_context", new_callable=AsyncMock, return_value="val"):
+        result = await handle_read_context({"key": "k"})
+        data = json.loads(result[0].text)
+        assert data["found"] is True
+        assert data["value"] == "val"
+
+
+async def test_handle_read_context_returns_not_found():
+    """read_context returns None → handler returns {"found": False, "value": None}."""
+    with patch("duggerbot.mcp.dev_tools.read_context", new_callable=AsyncMock, return_value=None):
+        result = await handle_read_context({"key": "missing"})
+        data = json.loads(result[0].text)
+        assert data["found"] is False
+        assert data["value"] is None
+
+
+async def test_handle_delete_context_returns_deleted_true():
+    """delete_context returns True → handler returns {"deleted": True}."""
+    with patch("duggerbot.mcp.dev_tools.delete_context", new_callable=AsyncMock, return_value=True):
+        result = await handle_delete_context({"key": "doomed"})
+        data = json.loads(result[0].text)
+        assert data["deleted"] is True
+
+
+async def test_handle_dispatch_to_cline_returns_output():
+    """Stub handler returns success=False with CLI not installed message."""
+    result = await handle_dispatch_to_cline({"task": "fix the bug", "model": "ollama/qwen3"})
+    data = json.loads(result[0].text)
+    assert data["success"] is False
+    assert data["model"] == "ollama/qwen3"
+    assert "not installed" in data["output"]

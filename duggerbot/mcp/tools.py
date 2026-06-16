@@ -136,4 +136,60 @@ def get_dev_tool_list() -> list[Tool]:
                 "required": ["path"],
             },
         ),
+        Tool(
+            name="write_context",
+            description="Write or overwrite a shared context entry. Claude writes directives, Devin reads them.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "key": {"type": "string", "description": "Context key."},
+                    "value": {"type": "string", "description": "Context value."},
+                },
+                "required": ["key", "value"],
+            },
+        ),
+        Tool(
+            name="read_context",
+            description="Read a shared context entry by key. Returns value or null if not found.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "key": {"type": "string", "description": "Context key to read."},
+                },
+                "required": ["key"],
+            },
+        ),
+        Tool(
+            name="delete_context",
+            description="Delete a shared context entry by key.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "key": {"type": "string", "description": "Context key to delete."},
+                },
+                "required": ["key"],
+            },
+        ),
+        Tool(
+            name="list_context",
+            description="List all context keys, optionally filtered by prefix.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "prefix": {"type": "string", "description": "Optional key prefix filter.", "default": ""},
+                },
+            },
+        ),
+        Tool(
+            name="dispatch_to_cline",
+            description="Dispatch a bounded coding task to Cline CLI headless with a specified Ollama model.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "task": {"type": "string", "description": "The coding task to dispatch."},
+                    "model": {"type": "string", "description": "Ollama model name (e.g. ollama/qwen3)."},
+                },
+                "required": ["task", "model"],
+            },
+        ),
     ]

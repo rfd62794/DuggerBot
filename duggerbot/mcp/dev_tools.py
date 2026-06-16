@@ -9,6 +9,8 @@ from pathlib import Path
 
 from mcp.types import TextContent
 
+from duggerbot.context_store import delete_context, list_context, read_context, write_context
+
 
 # ---------------------------------------------------------------------------
 # Subprocess helper
@@ -217,6 +219,63 @@ async def handle_check_for_update(arguments: dict) -> list[TextContent]:
     }))]
 
 
+async def handle_write_context(arguments: dict) -> list[TextContent]:
+    """Write or overwrite a context entry."""
+    key = arguments.get("key", "")
+    value = arguments.get("value", "")
+    if not key:
+        return [TextContent(type="text", text=json.dumps({"error": "key is required"}))]
+    await write_context(key, value)
+    return [TextContent(type="text", text=json.dumps({
+        "key": key, "written": True, "error": None,
+    }))]
+
+
+async def handle_read_context(arguments: dict) -> list[TextContent]:
+    """Read a context entry by key."""
+    key = arguments.get("key", "")
+    if not key:
+        return [TextContent(type="text", text=json.dumps({"error": "key is required"}))]
+    value = await read_context(key)
+    return [TextContent(type="text", text=json.dumps({
+        "key": key, "value": value, "found": value is not None, "error": None,
+    }))]
+
+
+async def handle_delete_context(arguments: dict) -> list[TextContent]:
+    """Delete a context entry by key."""
+    key = arguments.get("key", "")
+    if not key:
+        return [TextContent(type="text", text=json.dumps({"error": "key is required"}))]
+    deleted = await delete_context(key)
+    return [TextContent(type="text", text=json.dumps({
+        "key": key, "deleted": deleted, "error": None,
+    }))]
+
+
+async def handle_list_context(arguments: dict) -> list[TextContent]:
+    """List context keys, optionally filtered by prefix."""
+    prefix = arguments.get("prefix", "")
+    keys = await list_context(prefix)
+    return [TextContent(type="text", text=json.dumps({
+        "keys": keys, "count": len(keys), "error": None,
+    }))]
+
+
+async def handle_dispatch_to_cline(arguments: dict) -> list[TextContent]:
+    """Dispatch a task to Cline CLI headless. Stub — CLI not yet installed."""
+    task = arguments.get("task", "")
+    model = arguments.get("model", "")
+    if not task or not model:
+        return [TextContent(type="text", text=json.dumps({"error": "task and model are required"}))]
+    return [TextContent(type="text", text=json.dumps({
+        "output": "Cline CLI not installed — dispatch unavailable. See docs/decisions/pending.md",
+        "model": model,
+        "success": False,
+        "error": "cline not found in PATH",
+    }))]
+
+
 async def handle_read_file(arguments: dict) -> list[TextContent]:
     """Read a file by absolute or repo-relative path. Returns content as text."""
     file_path = arguments.get("path", "")
@@ -254,4 +313,9 @@ DEV_TOOL_HANDLERS = {
     "get_version": handle_get_version,
     "check_for_update": handle_check_for_update,
     "read_file": handle_read_file,
+    "write_context": handle_write_context,
+    "read_context": handle_read_context,
+    "delete_context": handle_delete_context,
+    "list_context": handle_list_context,
+    "dispatch_to_cline": handle_dispatch_to_cline,
 }

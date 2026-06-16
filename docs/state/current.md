@@ -1,5 +1,5 @@
-phase: 'Phase 3.9 — HEARTBEAT Reader'
-certified_floor: '204 passed, 0 failed, 0 skipped'
+phase: 'Phase 3.8 — Context Store + Cline Dispatch'
+certified_floor: '216 passed, 0 failed, 0 skipped'
 coverage_overall: '96% (twins+mcp), 97% (router)'
 coverage_per_module:
   # Phase 1 — Provider Router
@@ -24,9 +24,12 @@ coverage_per_module:
   mcp/dev_tools: '83%'
   # Phase 3.6 — Version Tracking and Self-Update
   version: '85%'
-what_is_next: 'Phase 3.8 — dispatch_to_cline tool (after Part B verification)'
+what_is_next: 'Phase 4 — RALPH Rebuilt'
+context_store: 'live — SQLite key-value store, 4 MCP tools (write/read/delete/list)'
+cline_dispatch: 'stubbed — CLI not installed, see docs/decisions/pending.md'
+heartbeat: 'live — recursive mode with NEXT marker, Gemini→OpenRouter fallback'
 privybot_status: running
-duggerbot_status: deployment gate certified — Part A (code) and Part B (manual verification) complete
+duggerbot_status: Phase 3.8 certified — context store live, 18 MCP tools
 tobor_status: running — 0.1.0.r50, development instance, Nitro 5
 oq_001: 'RESOLVED — SSE, port 8001'
 oq_003: 'RESOLVED — REST API on Tower for shared state'
