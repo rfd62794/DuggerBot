@@ -10,7 +10,10 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
+import httpx
+
 from duggerbot.providers.gemini import call_gemini_flash
+from duggerbot.providers.openrouter import call_openrouter
 
 log = logging.getLogger(__name__)
 
@@ -51,13 +54,28 @@ def _clear_heartbeat() -> None:
     HEARTBEAT_PATH.write_text("", encoding="utf-8")
 
 
+async def _call_provider(task: str) -> str:
+    """Try Gemini first, fall back to OpenRouter on 429."""
+    gemini_key = os.environ.get("GEMINI_API_KEY", "")
+    if gemini_key:
+        try:
+            return await call_gemini_flash(prompt=task, api_key=gemini_key)
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 429:
+                log.warning("Gemini 429 — falling back to OpenRouter")
+            else:
+                raise
+
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
+    if openrouter_key:
+        return await call_openrouter(prompt=task, api_key=openrouter_key)
+
+    raise RuntimeError("No provider available — both GEMINI_API_KEY and OPENROUTER_API_KEY missing or 429")
+
+
 async def heartbeat_loop() -> None:
-    """Background coroutine: check HEARTBEAT.md, call Gemini Flash, respond, clear."""
+    """Background coroutine: check HEARTBEAT.md, call provider, respond, clear."""
     interval = _get_interval()
-    api_key = os.environ.get("GEMINI_API_KEY", "")
-    if not api_key:
-        log.warning("Heartbeat loop disabled — GEMINI_API_KEY not set")
-        return
     log.info("Heartbeat loop started — interval=%ds", interval)
     while True:
         await asyncio.sleep(interval)
@@ -67,7 +85,7 @@ async def heartbeat_loop() -> None:
                 log.debug("Heartbeat: no task found")
                 continue
             log.info("Heartbeat task received (%d chars)", len(task))
-            response = await call_gemini_flash(prompt=task, api_key=api_key)
+            response = await _call_provider(task)
             _write_response(task, response)
             _clear_heartbeat()
             log.info("Heartbeat task processed and cleared")
