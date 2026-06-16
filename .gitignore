@@ -54,3 +54,25 @@ scripts/*.sh
 
 # Memory
 memory/*.md
+
+# PrivyBot DB (stale copy)
+privy.db
+
+# Migration scripts
+scripts/migrate_privybot.py
+
+# Migration output
+migrate_privybot_output.json
+
+# Migration manifests
+migrate_manifest_*.json
+migration_manifest.json
+migration_manifest_backup.json
+
+# Migration reports
+migrate_report_*.json
+migration_report_*.json
+
+# Migration logs
+migrate_log_*.txt
+migration_log_*.txt

@@ -63,6 +63,10 @@ required_variables:
     type: string
     description: "Telegram bot token. Carries over from PrivyBot — same bot, same channel."
 
+  TELEGRAM_CHAT_ID:
+    type: string
+    description: "Telegram chat ID. Carries over from PrivyBot — same channel."
+
   CLAUDE_DAILY_CAP_USD:
     type: float
     description: "Hard daily cap for Claude API spend. ADR-005."
