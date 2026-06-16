@@ -18,16 +18,15 @@ CREATE TABLE IF NOT EXISTS context (
 )
 """
 
-async def _get_db() -> aiosqlite.Connection:
-    db = await aiosqlite.connect(DB_PATH)
+async def _ensure_table(db: aiosqlite.Connection) -> None:
     await db.execute(_CREATE_TABLE)
     await db.commit()
-    return db
 
 
 async def write_context(key: str, value: str) -> None:
     """Write or overwrite a context entry."""
-    async with await _get_db() as db:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await _ensure_table(db)
         await db.execute(
             "INSERT INTO context (key, value, updated_at) VALUES (?, ?, datetime('now','utc')) "
             "ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at",
@@ -38,7 +37,8 @@ async def write_context(key: str, value: str) -> None:
 
 async def read_context(key: str) -> str | None:
     """Read a context entry. Returns None if key does not exist."""
-    async with await _get_db() as db:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await _ensure_table(db)
         async with db.execute("SELECT value FROM context WHERE key = ?", (key,)) as cur:
             row = await cur.fetchone()
             return row[0] if row else None
@@ -46,7 +46,8 @@ async def read_context(key: str) -> str | None:
 
 async def delete_context(key: str) -> bool:
     """Delete a context entry. Returns True if key existed."""
-    async with await _get_db() as db:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await _ensure_table(db)
         cur = await db.execute("DELETE FROM context WHERE key = ?", (key,))
         await db.commit()
         return cur.rowcount > 0
@@ -54,7 +55,8 @@ async def delete_context(key: str) -> bool:
 
 async def list_context(prefix: str = "") -> list[str]:
     """List all keys, optionally filtered by prefix."""
-    async with await _get_db() as db:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await _ensure_table(db)
         async with db.execute(
             "SELECT key FROM context WHERE key LIKE ? ORDER BY key",
             (f"{prefix}%",),
