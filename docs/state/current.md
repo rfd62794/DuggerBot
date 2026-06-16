@@ -35,4 +35,5 @@ issue_002: 'RESOLVED — CallerIdentity in auth.py, Devin routing restriction'
 issue_003: 'OPEN — task_source Phase 1 model touch'
 issue_004: 'RESOLVED — deployment scripts gitignored, fixed with negation rules'
 issue_005: 'OPEN — NSSM PATH missing git/uv, version reads r0 — low priority'
+issue_006: 'OPEN — NSSM git fetch auth fails as LocalSystem — blocks self-update'
 last_updated: 2026-06-16
