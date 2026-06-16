@@ -3,6 +3,7 @@
 import asyncio
 import json
 import re
+import sys
 import tempfile
 from pathlib import Path
 
@@ -49,7 +50,7 @@ async def handle_verify_test_floor(arguments: dict) -> list[TextContent]:
     """Run pytest --tb=no -q. Return structured pass/fail/skip counts."""
     try:
         _, stdout, stderr = await _run_command(
-            ["uv", "run", "pytest", "--tb=no", "-q"],
+            [sys.executable, "-m", "pytest", "--tb=no", "-q"],
             timeout=120.0,
         )
         return [TextContent(type="text", text=_parse_pytest_summary(stdout))]
@@ -98,7 +99,7 @@ async def handle_check_coverage(arguments: dict) -> list[TextContent]:
     try:
         await _run_command(
             [
-                "uv", "run", "pytest",
+                sys.executable, "-m", "pytest",
                 "--cov=duggerbot",
                 f"--cov-report=json:{report_path}",
                 "--tb=no", "-q",
