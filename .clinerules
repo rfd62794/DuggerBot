@@ -1,0 +1,135 @@
+# DuggerBot — Cline Rules
+
+This file governs every Cline session on this repository.
+Read it fully before touching any file.
+
+---
+
+## Identity
+
+DuggerBot is TOBOR's shell. TOBOR is a personal AI agent infrastructure
+system for Robert Floyd Dugger. The codebase is Python 3.12, managed with uv.
+The coding methodology is Spec-Driven Development (SDD): spec before code,
+phase-gated, test floors required.
+
+---
+
+## Pre-Flight (MANDATORY — run before any file edit)
+
+```
+uv run pytest
+```
+
+Must report: **200 passed, 0 failed, 0 skipped**
+If count differs: STOP. Report the actual count. Do not proceed.
+
+This is not optional. There are no exceptions.
+
+---
+
+## Test Requirements
+
+- pytest is the test framework
+- 80% coverage minimum — overall AND per-module
+- 0 failed, 0 skipped — a skipped test is a failing floor
+- All external calls mocked (httpx.MockTransport, pytest-mock)
+- No real SQLite files in tests — use tmp_path fixture
+- No real HTTP calls in tests — no network
+- No real subprocess calls in tests — mock _run_command
+
+Coverage proof required: `--cov-report=term-missing` output showing per-module %
+
+---
+
+## Coding Standards
+
+**Single Responsibility Principle — enforced.**
+Every file, class, and function does exactly one thing.
+If a file's name requires "and", it needs to be split.
+
+**Package manager: uv only.** Never pip. Never poetry.
+
+**Subprocess in async context:**
+`asyncio.create_subprocess_exec` only.
+Never `subprocess.run` inside an async handler.
+Never `asyncio.create_subprocess_shell`.
+
+**Configuration: YAML + .env.local.**
+Never hardcode provider names, URLs, ports, or costs in Python files.
+All configurable values come from config/providers.yaml, config/routing.yaml,
+or environment variables.
+
+**Exit from service:**
+`os._exit(0)` for clean restart, `os._exit(1)` for error stop.
+Never `sys.exit()` inside an async context — FastAPI swallows it.
+
+---
+
+## Read-Only Files
+
+These files are NEVER modified without an explicit directive instruction:
+
+- All files in `duggerbot/router/` (Phase 1 — certified)
+- All files in `docs/adr/` (ADRs are permanent)
+- `SOUL.md`, `MEMORY.md`, `AGENTS.md`, `HEARTBEAT.md` (soul documents)
+- `.gitignore` 
+- `config/providers.yaml`, `config/routing.yaml` 
+
+If a bug is found in a read-only file: STOP. Report it. Do not fix silently.
+
+---
+
+## Proof Standard
+
+Agent summaries are not accepted. Required proof per claim:
+
+| Claim | Required proof |
+|---|---|
+| Tests passing | Exact pytest output line: `X passed, 0 failed, 0 skipped` |
+| Coverage met | Per-module table from `--cov-report=term-missing` |
+| File created | Read the file back and confirm content |
+
+Never claim a task is complete without pasting raw terminal output.
+
+---
+
+## Architecture Map
+
+```
+duggerbot/
+  router/       Phase 1 — Provider routing, cost tracking (READ-ONLY)
+  mcp/          Phase 2 — MCP server, auth, tools, handlers, dev_tools
+  twins/        Phase 3 — Twin protocol, presence, state, coordinator
+  ralph/        Phase 4 — RALPH research loop (NOT YET BUILT)
+  soul/         Soul document interface (READ-ONLY)
+  version.py    Version tracking, self-update mechanism
+  main.py       Entry point — uvicorn + logging setup
+```
+
+Phase 4 (ralph/) does not exist yet. Do not create files there without
+an explicit Phase 4 directive.
+
+---
+
+## Current State
+
+Phase: 3.7 certified — Deployment Gate
+Floor: 200/0/0
+Next: Phase 3.8 — dispatch_to_cline tool
+TOBOR: running on Nitro 5 at 0.1.0.r50
+
+Check current state before every session:
+Call `get_project_state()` via DuggerBot MCP if connected.
+Or read `docs/state/current.md` directly.
+
+---
+
+## What Cline Should NOT Do
+
+- Do not touch read-only files
+- Do not add features beyond what the directive specifies
+- Do not refactor code that isn't broken
+- Do not add abstractions for single-use code
+- Do not skip the pre-flight pytest check
+- Do not claim completion without raw terminal proof
+- Do not create files in `duggerbot/ralph/` without a Phase 4 directive

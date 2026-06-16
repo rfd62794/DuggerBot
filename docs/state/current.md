@@ -24,7 +24,7 @@ coverage_per_module:
   mcp/dev_tools: '83%'
   # Phase 3.6 — Version Tracking and Self-Update
   version: '85%'
-what_is_next: 'Phase 4 — RALPH Rebuilt'
+what_is_next: 'Phase 3.8 — dispatch_to_cline tool'
 privybot_status: running
 duggerbot_status: deployment gate certified — Part A (code) and Part B (manual verification) complete
 tobor_status: running — 0.1.0.r50, development instance, Nitro 5
@@ -36,4 +36,6 @@ issue_003: 'OPEN — task_source Phase 1 model touch'
 issue_004: 'RESOLVED — deployment scripts gitignored, fixed with negation rules'
 issue_005: 'OPEN — NSSM PATH missing git/uv, version reads r0 — low priority'
 issue_006: 'OPEN — NSSM git fetch auth fails as LocalSystem — blocks self-update'
+adr_010: 'Accepted — Six-level agent hierarchy, Cline as Level 3'
+clinerules: 'present — repo governance for Cline sessions'
 last_updated: 2026-06-16
