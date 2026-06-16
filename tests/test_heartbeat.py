@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from duggerbot.heartbeat import (
     _clear_heartbeat,
+    _extract_next_task,
     _read_heartbeat,
     _write_response,
     HEARTBEAT_PATH,
@@ -46,3 +47,14 @@ def test_clear_heartbeat_empties_file(tmp_path):
     with patch("duggerbot.heartbeat.HEARTBEAT_PATH", hb):
         _clear_heartbeat()
     assert hb.read_text(encoding="utf-8") == ""
+
+
+def test_extract_next_task_returns_task_when_marker_present():
+    """<!-- NEXT: ... --> marker in response → returns the task."""
+    response = "Some content\n<!-- NEXT: do the next thing -->\nmore content"
+    assert _extract_next_task(response) == "do the next thing"
+
+
+def test_extract_next_task_returns_none_when_no_marker():
+    """No marker in response → returns None."""
+    assert _extract_next_task("response with no marker") is None

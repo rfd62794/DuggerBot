@@ -7,6 +7,7 @@ If content is present: call Gemini Flash, write response, clear inbox.
 import asyncio
 import logging
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -46,12 +47,19 @@ def _write_response(task: str, response: str) -> None:
         f"---\n\n"
         f"{response}\n"
     )
-    RESPONSE_PATH.write_text(output, encoding="utf-8")
+    with open(RESPONSE_PATH, "a", encoding="utf-8") as f:
+        f.write(output)
 
 
 def _clear_heartbeat() -> None:
     """Clear HEARTBEAT.md after successful processing."""
     HEARTBEAT_PATH.write_text("", encoding="utf-8")
+
+
+def _extract_next_task(response: str) -> str | None:
+    """Extract next task from <!-- NEXT: ... --> marker in response."""
+    match = re.search(r'<!--\s*NEXT:\s*(.*?)\s*-->', response, re.DOTALL)
+    return match.group(1).strip() if match else None
 
 
 async def _call_provider(task: str) -> str:
@@ -87,7 +95,12 @@ async def heartbeat_loop() -> None:
             log.info("Heartbeat task received (%d chars)", len(task))
             response = await _call_provider(task)
             _write_response(task, response)
-            _clear_heartbeat()
-            log.info("Heartbeat task processed and cleared")
+            next_task = _extract_next_task(response)
+            if next_task:
+                HEARTBEAT_PATH.write_text(next_task, encoding="utf-8")
+                log.info("Heartbeat: next task loaded (%d chars)", len(next_task))
+            else:
+                _clear_heartbeat()
+            log.info("Heartbeat task processed")
         except Exception:
             log.exception("Heartbeat loop error — continuing")
