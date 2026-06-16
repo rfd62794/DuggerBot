@@ -61,7 +61,12 @@ if (-not (Test-Path "$RepoPath\.env.local")) {
 }
 Write-OK ".env.local present"
 
-# 5. SOUL_PATH reminder
+# 5. Install pre-commit hook (bakes revision into _version_info.py)
+Write-Step "Installing pre-commit hook"
+Copy-Item "$RepoPath\scripts\hooks\pre-commit" "$RepoPath\.git\hooks\pre-commit" -Force
+Write-OK "Pre-commit hook installed"
+
+# 6. SOUL_PATH reminder
 Write-Host ""
 Write-Host "  REMINDER: Soul documents must be placed at the path in SOUL_PATH" -ForegroundColor Yellow
 Write-Host "  Copy via Tailscale or RDP — they are not in the repo." -ForegroundColor Yellow

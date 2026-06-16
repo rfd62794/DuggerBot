@@ -21,28 +21,38 @@ def _mock_run_git(returncode: int, stdout: str):
     return result
 
 
-def test_get_revision_returns_int():
-    """Mocked git → returns integer."""
-    with patch("duggerbot.version.subprocess.run", return_value=_mock_run_git(0, "174\n")):
+def test_get_revision_returns_int_from_version_info():
+    """_version_info.py present → returns REVISION from it."""
+    with patch.dict("sys.modules", {"duggerbot._version_info": MagicMock(REVISION=174)}):
         assert get_revision() == 174
 
 
+def test_get_revision_falls_back_to_git():
+    """_version_info.py missing → falls back to git."""
+    import sys
+    with patch.dict("sys.modules", {"duggerbot._version_info": None}), \
+         patch("duggerbot.version.subprocess.run", return_value=_mock_run_git(0, "99\n")):
+        # Force re-import attempt to hit ImportError
+        assert get_revision() == 99
+
+
 def test_get_revision_returns_zero_on_git_failure():
-    """git fails → returns 0."""
-    with patch("duggerbot.version.subprocess.run", return_value=_mock_run_git(1, "")):
+    """git fails and no _version_info → returns 0."""
+    with patch.dict("sys.modules", {"duggerbot._version_info": None}), \
+         patch("duggerbot.version.subprocess.run", return_value=_mock_run_git(1, "")):
         assert get_revision() == 0
 
 
 def test_get_version_string_format():
     """Returns '0.1.0.rN' pattern."""
-    with patch("duggerbot.version.subprocess.run", return_value=_mock_run_git(0, "42\n")):
+    with patch.dict("sys.modules", {"duggerbot._version_info": MagicMock(REVISION=42)}):
         v = get_version_string()
         assert v == "0.1.0.r42"
 
 
 def test_get_version_string_contains_revision():
     """Revision N matches get_revision()."""
-    with patch("duggerbot.version.subprocess.run", return_value=_mock_run_git(0, "99\n")):
+    with patch.dict("sys.modules", {"duggerbot._version_info": MagicMock(REVISION=99)}):
         v = get_version_string()
         assert "r99" in v
         assert get_revision() == 99
@@ -62,17 +72,16 @@ def test_get_git_hash_returns_unknown_on_failure():
 
 def test_is_update_available_true_when_remote_ahead():
     """remote > local → True."""
-    call_count = [0]
     def fake_run(*args, **kwargs):
-        call_count[0] += 1
         cmd = args[0]
         if "origin/main" in cmd:
             return _mock_run_git(0, "200\n")
         if "HEAD" in cmd:
             return _mock_run_git(0, "174\n")
-        return _mock_run_git(0, "")  # git fetch
+        return _mock_run_git(0, "")
 
-    with patch("duggerbot.version.subprocess.run", side_effect=fake_run):
+    with patch.dict("sys.modules", {"duggerbot._version_info": MagicMock(REVISION=174)}), \
+         patch("duggerbot.version.subprocess.run", side_effect=fake_run):
         assert is_update_available() is True
 
 
@@ -84,7 +93,8 @@ def test_is_update_available_false_when_current():
             return _mock_run_git(0, "174\n")
         return _mock_run_git(0, "")
 
-    with patch("duggerbot.version.subprocess.run", side_effect=fake_run):
+    with patch.dict("sys.modules", {"duggerbot._version_info": MagicMock(REVISION=174)}), \
+         patch("duggerbot.version.subprocess.run", side_effect=fake_run):
         assert is_update_available() is False
 
 
