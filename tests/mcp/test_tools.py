@@ -67,9 +67,9 @@ def test_get_cost_today_no_required_params():
 # ---------------------------------------------------------------------------
 
 
-def test_dev_tool_list_has_five_tools():
-    """get_dev_tool_list() returns list of length 5."""
-    assert len(get_dev_tool_list()) == 5
+def test_dev_tool_list_has_seven_tools():
+    """get_dev_tool_list() returns list of length 7."""
+    assert len(get_dev_tool_list()) == 7
 
 
 def test_verify_test_floor_schema_valid():
@@ -96,5 +96,19 @@ def test_get_project_state_schema_valid():
 def test_get_open_issues_schema_valid():
     """get_open_issues has name, description, empty required."""
     tool = _dev_tool_by_name("get_open_issues")
+    assert tool.description
+    assert tool.inputSchema.get("required", []) == []
+
+
+def test_get_version_schema_valid():
+    """get_version has name, description, empty required."""
+    tool = _dev_tool_by_name("get_version")
+    assert tool.description
+    assert tool.inputSchema.get("required", []) == []
+
+
+def test_check_for_update_schema_valid():
+    """check_for_update has name, description, empty required."""
+    tool = _dev_tool_by_name("check_for_update")
     assert tool.description
     assert tool.inputSchema.get("required", []) == []

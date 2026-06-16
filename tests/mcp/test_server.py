@@ -1,4 +1,4 @@
-"""Tests for duggerbot.mcp.server — Phase 2."""
+"""Tests for duggerbot.mcp.server — Phase 2 + Phase 3.6."""
 
 import os
 from contextlib import asynccontextmanager
@@ -10,7 +10,6 @@ from fastapi import FastAPI
 
 from duggerbot.mcp.server import (
     SERVER_NAME,
-    SERVER_VERSION,
     TOBOR_IDENTITY,
     app,
 )
@@ -183,7 +182,7 @@ async def test_lifespan_cleanup_closes_client(tmp_path, monkeypatch):
 
 
 async def test_lifespan_mcp_list_tools(tmp_path, monkeypatch):
-    """MCP server list_tools handler returns 10 tools (5 production + 5 dev)."""
+    """MCP server list_tools handler returns 12 tools (5 production + 7 dev)."""
     from mcp.types import ListToolsRequest
     from duggerbot.mcp.server import lifespan
     config_dir = _make_test_config(tmp_path)
@@ -196,7 +195,7 @@ async def test_lifespan_mcp_list_tools(tmp_path, monkeypatch):
         mcp_server = test_app.state.mcp_server
         handler = mcp_server.request_handlers[ListToolsRequest]
         result = await handler(ListToolsRequest(method="tools/list"))
-        assert len(result.root.tools) == 10
+        assert len(result.root.tools) == 12
 
 
 async def test_lifespan_mcp_call_tool(tmp_path, monkeypatch):
@@ -231,3 +230,58 @@ def test_default_db_path():
     """DEFAULT_DB_PATH is 'duggerbot.db'."""
     from duggerbot.mcp.server import DEFAULT_DB_PATH
     assert DEFAULT_DB_PATH == "duggerbot.db"
+
+
+# ---------------------------------------------------------------------------
+# Phase 3.6 — Version in /health, update check deferral
+# ---------------------------------------------------------------------------
+
+
+async def test_health_response_version_matches_format(client):
+    """version field matches x.x.x.rN pattern."""
+    import re
+    resp = await client.get("/health")
+    version = resp.json()["version"]
+    assert re.match(r"\d+\.\d+\.\d+\.r\d+", version)
+
+
+async def test_health_response_includes_version_from_module(client):
+    """GET /health → JSON has 'version' key from version.py."""
+    resp = await client.get("/health")
+    data = resp.json()
+    assert "version" in data
+    assert data["version"].startswith("0.1.0.r")
+
+
+async def test_update_check_defers_when_inflight():
+    """coordinator.has_inflight_work() True → update loop does not exit."""
+    from unittest.mock import patch, AsyncMock as AM
+    from duggerbot.mcp.server import _update_check_loop
+    import asyncio
+
+    mock_app = MagicMock()
+    mock_coordinator = AM()
+    mock_coordinator.has_inflight_work.return_value = True
+    mock_app.state.twin_coordinator = mock_coordinator
+
+    call_count = [0]
+    original_sleep = asyncio.sleep
+
+    async def fake_sleep(seconds):
+        call_count[0] += 1
+        if call_count[0] >= 3:
+            raise asyncio.CancelledError
+        return
+
+    with patch("duggerbot.mcp.server.asyncio.sleep", side_effect=fake_sleep), \
+         patch("duggerbot.version.subprocess.run") as mock_run:
+        from unittest.mock import MagicMock as MM
+        r = MM()
+        r.returncode = 0
+        r.stdout = "200\n"
+        mock_run.return_value = r
+
+        with pytest.raises(asyncio.CancelledError):
+            await _update_check_loop(mock_app)
+
+    mock_coordinator.has_inflight_work.assert_called()

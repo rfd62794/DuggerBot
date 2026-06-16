@@ -11,9 +11,11 @@ from duggerbot.mcp.dev_tools import (
     _parse_pytest_summary,
     _run_command,
     handle_check_coverage,
+    handle_check_for_update,
     handle_get_migration_manifest,
     handle_get_open_issues,
     handle_get_project_state,
+    handle_get_version,
     handle_verify_test_floor,
 )
 
@@ -240,3 +242,81 @@ async def test_get_migration_manifest_error_when_missing(tmp_path, monkeypatch):
     result = await handle_get_migration_manifest({})
     data = json.loads(result[0].text)
     assert "error" in data
+
+
+# ---------------------------------------------------------------------------
+# handle_get_version
+# ---------------------------------------------------------------------------
+
+async def test_get_version_returns_version_string(monkeypatch):
+    """Response JSON has 'version' key matching format."""
+    monkeypatch.setenv("INSTANCE_ROLE", "development")
+    with patch("duggerbot.version.subprocess.run") as mock_run:
+        from unittest.mock import MagicMock
+        result_obj = MagicMock()
+        result_obj.returncode = 0
+        result_obj.stdout = "42\n"
+        mock_run.return_value = result_obj
+        result = await handle_get_version({})
+        data = json.loads(result[0].text)
+        assert "version" in data
+        assert data["version"].startswith("0.1.0.r")
+        assert data["error"] is None
+
+
+async def test_get_version_returns_instance_role(monkeypatch):
+    """Response JSON has 'instance_role' from env."""
+    monkeypatch.setenv("INSTANCE_ROLE", "production")
+    with patch("duggerbot.version.subprocess.run") as mock_run:
+        from unittest.mock import MagicMock
+        result_obj = MagicMock()
+        result_obj.returncode = 0
+        result_obj.stdout = "1\n"
+        mock_run.return_value = result_obj
+        result = await handle_get_version({})
+        data = json.loads(result[0].text)
+        assert data["instance_role"] == "production"
+
+
+# ---------------------------------------------------------------------------
+# handle_check_for_update
+# ---------------------------------------------------------------------------
+
+async def test_check_for_update_returns_local_and_remote():
+    """Response has local_revision, remote_revision."""
+    with patch("duggerbot.version.subprocess.run") as mock_run:
+        from unittest.mock import MagicMock
+        result_obj = MagicMock()
+        result_obj.returncode = 0
+        result_obj.stdout = "174\n"
+        mock_run.return_value = result_obj
+        result = await handle_check_for_update({})
+        data = json.loads(result[0].text)
+        assert "local_revision" in data
+        assert "remote_revision" in data
+        assert data["error"] is None
+
+
+async def test_check_for_update_update_available_true():
+    """remote > local → update_available True."""
+    call_count = [0]
+    def fake_run(*args, **kwargs):
+        from unittest.mock import MagicMock
+        call_count[0] += 1
+        cmd = args[0]
+        r = MagicMock()
+        if "origin/main" in cmd:
+            r.returncode = 0
+            r.stdout = "200\n"
+        elif "HEAD" in cmd:
+            r.returncode = 0
+            r.stdout = "174\n"
+        else:
+            r.returncode = 0
+            r.stdout = ""
+        return r
+
+    with patch("duggerbot.version.subprocess.run", side_effect=fake_run):
+        result = await handle_check_for_update({})
+        data = json.loads(result[0].text)
+        assert data["update_available"] is True
