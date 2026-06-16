@@ -87,6 +87,16 @@ required_variables:
     type: string
     description: "Telegram chat ID. Carries over from PrivyBot — same channel."
 
+  UPDATE_CHECK_INTERVAL_MINUTES:
+    type: integer
+    description: "How often the background update check runs, in minutes."
+    default: 60
+
+  UPDATE_CHECK_RETRY_MINUTES:
+    type: integer
+    description: "Retry delay when update check deferred due to in-flight work, in minutes."
+    default: 5
+
   CLAUDE_DAILY_CAP_USD:
     type: float
     description: "Hard daily cap for Claude API spend. ADR-005."

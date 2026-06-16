@@ -1,5 +1,6 @@
 """Start and run the FastAPI application that exposes MCP-compatible endpoints."""
 
+import asyncio
 import json
 import os
 from contextlib import asynccontextmanager
@@ -28,11 +29,31 @@ from duggerbot.router.ledger import UsageLedger
 from duggerbot.router.registry import ProviderRegistry
 from duggerbot.router.router import ModelRouter
 from duggerbot.twins.router import twin_router
+from duggerbot.version import get_version_string
 
 SERVER_NAME = "duggerbot"
-SERVER_VERSION = "0.1.0"
 TOBOR_IDENTITY = "TOBOR"
 DEFAULT_DB_PATH = "duggerbot.db"
+
+
+async def _update_check_loop(app: FastAPI) -> None:
+    """Background task: periodically check for updates. Defers if in-flight work."""
+    from duggerbot.version import is_update_available, apply_update_and_exit
+    interval = int(os.environ.get("UPDATE_CHECK_INTERVAL_MINUTES", "60")) * 60
+    retry = int(os.environ.get("UPDATE_CHECK_RETRY_MINUTES", "5")) * 60
+
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            if not is_update_available():
+                continue
+            coordinator = getattr(app.state, "twin_coordinator", None)
+            if coordinator and await coordinator.has_inflight_work():
+                await asyncio.sleep(retry)
+                continue
+            apply_update_and_exit()
+        except Exception:
+            pass
 
 
 _HANDLER_FNS = {
@@ -95,8 +116,11 @@ async def lifespan(app: FastAPI):
     app.state.mcp_server = mcp_server
     app.state.sse_transport = SseServerTransport("/messages/")
 
+    update_task = asyncio.create_task(_update_check_loop(app))
+
     yield
 
+    update_task.cancel()
     await http_client.aclose()
 
 
@@ -111,7 +135,7 @@ async def health_endpoint(request: Request):
     return {
         "status": "ok",
         "name": TOBOR_IDENTITY,
-        "version": SERVER_VERSION,
+        "version": get_version_string(),
         "instance": os.environ.get("INSTANCE_ROLE", "unknown"),
         "providers": provider_count,
     }

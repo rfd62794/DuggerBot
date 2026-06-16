@@ -106,4 +106,20 @@ def get_dev_tool_list() -> list[Tool]:
                 "properties": {},
             },
         ),
+        Tool(
+            name="get_version",
+            description="Returns version string, revision, git hash, instance role — no network.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+        ),
+        Tool(
+            name="check_for_update",
+            description="Fetches from origin, returns local vs remote revision comparison — slow.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+        ),
     ]

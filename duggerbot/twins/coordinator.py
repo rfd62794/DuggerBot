@@ -43,6 +43,7 @@ class TwinCoordinator:
         self._delegation_timeout = float(
             os.environ.get("DELEGATION_TIMEOUT_SECONDS", "5")
         )
+        self._inflight_delegation_count: int = 0
 
     async def should_delegate_to_remote(self, request: TaskRequest) -> bool:
         """
@@ -103,6 +104,7 @@ class TwinCoordinator:
             from_role=self._identity.get_role(),
             timeout_seconds=self._delegation_timeout,
         )
+        self._inflight_delegation_count += 1
         try:
             resp = await self._client.post(
                 url,
@@ -114,6 +116,15 @@ class TwinCoordinator:
             return None
         except (httpx.TimeoutException, httpx.ConnectError, Exception):
             return None
+        finally:
+            self._inflight_delegation_count -= 1
+
+    async def has_inflight_work(self) -> bool:
+        """
+        Returns True if this instance currently has an in-flight delegation.
+        Phase 4 will extend this to also check active RALPH cycles.
+        """
+        return self._inflight_delegation_count > 0
 
     async def accept_delegation(
         self, delegation: DelegationRequest

@@ -1,5 +1,7 @@
 """FastAPI APIRouter exposing all /twin/* endpoints. Zero business logic here."""
 
+import asyncio
+import os
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -117,3 +119,26 @@ async def delegate_post(delegation: DelegationRequest, request: Request):
     coordinator = request.app.state.twin_coordinator
     response = await coordinator.accept_delegation(delegation)
     return response.model_dump()
+
+
+@twin_router.post("/upgrade", dependencies=[Depends(verify_token)])
+async def request_upgrade(request: Request) -> dict:
+    """Advisory upgrade request from the other twin. Each instance owns its own restart."""
+    coordinator = request.app.state.twin_coordinator
+    if await coordinator.has_inflight_work():
+        retry = int(os.environ.get("UPDATE_CHECK_RETRY_MINUTES", "5"))
+        return {
+            "accepted": False,
+            "reason": "in-flight delegation active",
+            "retry_after_minutes": retry,
+        }
+    from duggerbot.version import is_update_available
+    loop = asyncio.get_event_loop()
+    update_available = await loop.run_in_executor(None, is_update_available)
+    if not update_available:
+        return {"accepted": False, "reason": "already at latest revision"}
+    return {
+        "accepted": True,
+        "reason": "update will apply on next check cycle",
+        "retry_after_minutes": 1,
+    }

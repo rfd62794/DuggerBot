@@ -189,6 +189,33 @@ async def handle_get_migration_manifest(arguments: dict) -> list[TextContent]:
     return [TextContent(type="text", text=manifest_path.read_text())]
 
 
+async def handle_get_version(arguments: dict) -> list[TextContent]:
+    """Return current version string, revision, git hash, and instance role. Fast — no network."""
+    import os as _os
+    from duggerbot.version import get_version_string, get_revision, get_git_hash
+    return [TextContent(type="text", text=json.dumps({
+        "version": get_version_string(),
+        "revision": get_revision(),
+        "git_hash": get_git_hash(),
+        "instance_role": _os.environ.get("INSTANCE_ROLE", "unknown"),
+        "error": None,
+    }))]
+
+
+async def handle_check_for_update(arguments: dict) -> list[TextContent]:
+    """Check if a newer version is available on origin/main. Slow — performs git fetch."""
+    from duggerbot.version import get_revision, get_remote_revision
+    loop = asyncio.get_event_loop()
+    local = await loop.run_in_executor(None, get_revision)
+    remote = await loop.run_in_executor(None, get_remote_revision)
+    return [TextContent(type="text", text=json.dumps({
+        "local_revision": local,
+        "remote_revision": remote,
+        "update_available": remote > local and remote > 0,
+        "error": None,
+    }))]
+
+
 # ---------------------------------------------------------------------------
 # Dispatch table
 # ---------------------------------------------------------------------------
@@ -199,4 +226,6 @@ DEV_TOOL_HANDLERS = {
     "get_project_state": handle_get_project_state,
     "get_open_issues": handle_get_open_issues,
     "get_migration_manifest": handle_get_migration_manifest,
+    "get_version": handle_get_version,
+    "check_for_update": handle_check_for_update,
 }
