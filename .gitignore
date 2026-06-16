@@ -51,3 +51,6 @@ SOUL.md
 # Private Scripts
 scripts/*.ps1
 scripts/*.sh
+
+# Memory
+memory/*.md
