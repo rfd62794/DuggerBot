@@ -128,18 +128,16 @@ def test_tobor_identity_constant():
     assert TOBOR_IDENTITY == "TOBOR"
 
 
-async def test_lifespan_initializes_state(tmp_path, monkeypatch):
-    """Lifespan creates all expected state attributes."""
-    from duggerbot.mcp.server import lifespan
-
+def _make_test_config(tmp_path):
+    """Write minimal providers.yaml and routing.yaml to tmp_path/config."""
     config_dir = tmp_path / "config"
-    config_dir.mkdir()
+    config_dir.mkdir(exist_ok=True)
     (config_dir / "providers.yaml").write_text(
         "providers:\n"
         "  gemini:\n"
         "    role: primary\n"
         "    models: [gemini-2.0-flash]\n"
-        "    health_endpoint: https://generativelanguage.googleapis.com\n"
+        "    health_endpoint: https://example.com\n"
         "    enabled: true\n"
     )
     (config_dir / "routing.yaml").write_text(
@@ -147,12 +145,15 @@ async def test_lifespan_initializes_state(tmp_path, monkeypatch):
         "  default_chain: [gemini]\n"
         "  task_overrides: {}\n"
     )
+    return config_dir
 
+
+async def test_lifespan_initializes_state(tmp_path, monkeypatch):
+    """Lifespan creates all expected state attributes."""
+    from duggerbot.mcp.server import lifespan
+    config_dir = _make_test_config(tmp_path)
     monkeypatch.setenv("DB_PATH", str(tmp_path / "test.db"))
-
     import duggerbot.mcp.server as srv
-    from pathlib import Path
-    original_file = Path(srv.__file__)
     monkeypatch.setattr(srv, "__file__", str(config_dir / "mcp" / "server.py"))
 
     test_app = FastAPI(lifespan=lifespan)
@@ -164,6 +165,59 @@ async def test_lifespan_initializes_state(tmp_path, monkeypatch):
         assert hasattr(test_app.state, "mcp_server")
         assert hasattr(test_app.state, "sse_transport")
         assert hasattr(test_app.state, "http_client")
+
+
+async def test_lifespan_cleanup_closes_client(tmp_path, monkeypatch):
+    """Lifespan cleanup closes httpx client."""
+    from duggerbot.mcp.server import lifespan
+    config_dir = _make_test_config(tmp_path)
+    monkeypatch.setenv("DB_PATH", str(tmp_path / "test.db"))
+    import duggerbot.mcp.server as srv
+    monkeypatch.setattr(srv, "__file__", str(config_dir / "mcp" / "server.py"))
+
+    test_app = FastAPI(lifespan=lifespan)
+    async with lifespan(test_app):
+        http_client = test_app.state.http_client
+        assert not http_client.is_closed
+    assert http_client.is_closed
+
+
+async def test_lifespan_mcp_list_tools(tmp_path, monkeypatch):
+    """MCP server list_tools handler returns 5 tools."""
+    from mcp.types import ListToolsRequest
+    from duggerbot.mcp.server import lifespan
+    config_dir = _make_test_config(tmp_path)
+    monkeypatch.setenv("DB_PATH", str(tmp_path / "test.db"))
+    import duggerbot.mcp.server as srv
+    monkeypatch.setattr(srv, "__file__", str(config_dir / "mcp" / "server.py"))
+
+    test_app = FastAPI(lifespan=lifespan)
+    async with lifespan(test_app):
+        mcp_server = test_app.state.mcp_server
+        handler = mcp_server.request_handlers[ListToolsRequest]
+        result = await handler(ListToolsRequest(method="tools/list"))
+        assert len(result.root.tools) == 5
+
+
+async def test_lifespan_mcp_call_tool(tmp_path, monkeypatch):
+    """MCP server call_tool routes get_cost_today correctly."""
+    from mcp.types import CallToolRequest, CallToolRequestParams
+    from duggerbot.mcp.server import lifespan
+    config_dir = _make_test_config(tmp_path)
+    monkeypatch.setenv("DB_PATH", str(tmp_path / "test.db"))
+    import duggerbot.mcp.server as srv
+    monkeypatch.setattr(srv, "__file__", str(config_dir / "mcp" / "server.py"))
+
+    test_app = FastAPI(lifespan=lifespan)
+    async with lifespan(test_app):
+        mcp_server = test_app.state.mcp_server
+        handler = mcp_server.request_handlers[CallToolRequest]
+        req = CallToolRequest(
+            method="tools/call",
+            params=CallToolRequestParams(name="get_cost_today", arguments={}),
+        )
+        result = await handler(req)
+        assert len(result.root.content) >= 1
 
 
 def test_handler_fns_has_five_entries():
