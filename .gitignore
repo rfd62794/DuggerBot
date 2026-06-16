@@ -39,6 +39,7 @@ docs/heartbeat_response.md
 # SQLite databases (runtime — not committed)
 *.db
 *.sqlite3
+context.db
 
 # uv
 .python-version
