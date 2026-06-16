@@ -1,4 +1,4 @@
-"""Tests for duggerbot.mcp.handlers — Phase 2."""
+"""Tests for duggerbot.mcp.handlers — Phase 2 + Phase 3.5."""
 
 import json
 from unittest.mock import AsyncMock, MagicMock
@@ -13,6 +13,7 @@ from duggerbot.router.models import (
     BudgetExceededError,
 )
 from duggerbot.mcp.handlers import (
+    DEV_TOOL_HANDLERS,
     handle_research,
     handle_fast_lookup,
     handle_local_inference,
@@ -20,7 +21,8 @@ from duggerbot.mcp.handlers import (
     handle_get_cost_today,
     TOOL_HANDLERS,
 )
-from duggerbot.mcp.tools import get_tool_list
+from duggerbot.mcp.tools import get_tool_list, get_dev_tool_list
+from duggerbot.router.models import CallerIdentity
 
 
 def _mock_router(provider="gemini", model="gemini-2.0-flash", task_type=TaskType.RESEARCH):
@@ -228,4 +230,30 @@ def test_tool_handler_keys_match_tool_names():
     """TOOL_HANDLERS keys match names from get_tool_list()."""
     handler_keys = set(TOOL_HANDLERS.keys())
     tool_names = {t.name for t in get_tool_list()}
+    assert handler_keys == tool_names
+
+
+# ---------------------------------------------------------------------------
+# Phase 3.5 — Dev tool routing
+# ---------------------------------------------------------------------------
+
+
+async def test_claude_caller_can_call_verify_test_floor():
+    """CLAUDE identity → routes to dev tool without error."""
+    assert "verify_test_floor" in DEV_TOOL_HANDLERS
+    handler = DEV_TOOL_HANDLERS["verify_test_floor"]
+    assert callable(handler)
+
+
+async def test_devin_caller_can_call_verify_test_floor():
+    """DEVIN identity → routes to dev tool without error."""
+    assert "verify_test_floor" in DEV_TOOL_HANDLERS
+    handler = DEV_TOOL_HANDLERS["verify_test_floor"]
+    assert callable(handler)
+
+
+def test_dev_tool_keys_match_dev_tool_list():
+    """DEV_TOOL_HANDLERS keys == dev tool names."""
+    handler_keys = set(DEV_TOOL_HANDLERS.keys())
+    tool_names = {t.name for t in get_dev_tool_list()}
     assert handler_keys == tool_names
