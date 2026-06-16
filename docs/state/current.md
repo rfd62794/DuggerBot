@@ -33,4 +33,5 @@ oq_003: 'RESOLVED — REST API on Tower for shared state'
 issue_001: 'OPEN — router.py coverage debt (91%) — close before Phase 4'
 issue_002: 'RESOLVED — CallerIdentity in auth.py, Devin routing restriction'
 issue_003: 'OPEN — task_source Phase 1 model touch'
+issue_004: 'RESOLVED — deployment scripts gitignored, fixed with negation rules'
 last_updated: 2026-06-15
