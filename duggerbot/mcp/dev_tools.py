@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import os
 import re
 import sys
 import tempfile
@@ -263,17 +264,52 @@ async def handle_list_context(arguments: dict) -> list[TextContent]:
 
 
 async def handle_dispatch_to_cline(arguments: dict) -> list[TextContent]:
-    """Dispatch a task to Cline CLI headless. Stub — CLI not yet installed."""
+    """Dispatch a task to Cline CLI headless with Ollama provider."""
     task = arguments.get("task", "")
     model = arguments.get("model", "")
     if not task or not model:
         return [TextContent(type="text", text=json.dumps({"error": "task and model are required"}))]
-    return [TextContent(type="text", text=json.dumps({
-        "output": "Cline CLI not installed — dispatch unavailable. See docs/decisions/pending.md",
-        "model": model,
-        "success": False,
-        "error": "cline not found in PATH",
-    }))]
+
+    timeout = int(os.environ.get("CLINE_TIMEOUT_SECONDS", "300"))
+    repo_root = str(Path(__file__).parent.parent.parent)
+
+    proc = await asyncio.create_subprocess_exec(
+        "cline", task,
+        "--provider", "ollama",
+        "--model", model,
+        "--auto-approve", "true",
+        "--cwd", repo_root,
+        "--timeout", str(timeout),
+        "--json",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        stdout, stderr = await asyncio.wait_for(
+            proc.communicate(), timeout=timeout + 10
+        )
+        output = stdout.decode().strip() or stderr.decode().strip()
+        return [TextContent(type="text", text=json.dumps({
+            "success": proc.returncode == 0,
+            "output": output,
+            "model": model,
+            "error": None,
+        }))]
+    except asyncio.TimeoutError:
+        proc.kill()
+        return [TextContent(type="text", text=json.dumps({
+            "success": False,
+            "output": "Timed out",
+            "model": model,
+            "error": "timeout",
+        }))]
+    except Exception as e:
+        return [TextContent(type="text", text=json.dumps({
+            "success": False,
+            "output": str(e),
+            "model": model,
+            "error": str(e),
+        }))]
 
 
 async def handle_read_file(arguments: dict) -> list[TextContent]:

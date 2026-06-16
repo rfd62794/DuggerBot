@@ -368,9 +368,24 @@ async def test_handle_delete_context_returns_deleted_true():
 
 
 async def test_handle_dispatch_to_cline_returns_output():
-    """Stub handler returns success=False with CLI not installed message."""
-    result = await handle_dispatch_to_cline({"task": "fix the bug", "model": "ollama/qwen3"})
-    data = json.loads(result[0].text)
-    assert data["success"] is False
-    assert data["model"] == "ollama/qwen3"
-    assert "not installed" in data["output"]
+    """Handler calls cline with correct args and returns subprocess output."""
+    mock_proc = AsyncMock()
+    mock_proc.returncode = 0
+    mock_proc.communicate.return_value = (b'{"result": "done"}', b"")
+
+    with patch("asyncio.create_subprocess_exec", return_value=mock_proc) as mock_exec:
+        result = await handle_dispatch_to_cline({"task": "fix the bug", "model": "ollama/qwen3"})
+        data = json.loads(result[0].text)
+
+        # Verify cline was called with correct arguments
+        args = mock_exec.call_args[0]
+        assert args[0] == "cline"
+        assert "--provider" in args
+        assert "ollama" in args
+        assert "--model" in args
+        assert "ollama/qwen3" in args
+        assert "--auto-approve" in args
+        assert "--json" in args
+
+        assert data["success"] is True
+        assert data["model"] == "ollama/qwen3"

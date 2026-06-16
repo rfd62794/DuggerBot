@@ -1,4 +1,4 @@
-phase: 'Phase 3.8 — Context Store + Cline Dispatch'
+phase: 'Phase 3.8.1 — Cline Dispatch Live'
 certified_floor: '216 passed, 0 failed, 0 skipped'
 coverage_overall: '96% (twins+mcp), 97% (router)'
 coverage_per_module:
@@ -26,7 +26,7 @@ coverage_per_module:
   version: '85%'
 what_is_next: 'Phase 4 — RALPH Rebuilt'
 context_store: 'live — SQLite key-value store, 4 MCP tools (write/read/delete/list)'
-cline_dispatch: 'stubbed — CLI not installed, see docs/decisions/pending.md'
+cline_dispatch: 'live — Cline 3.0.24, asyncio subprocess, 300s timeout'
 heartbeat: 'live — recursive mode with NEXT marker, Gemini→OpenRouter fallback'
 privybot_status: running
 duggerbot_status: Phase 3.8 certified — context store live, 18 MCP tools
