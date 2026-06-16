@@ -13,6 +13,10 @@ required_variables:
     description: "Tailscale IP of the Tower instance."
     default: "100.106.80.49"
 
+  SOUL_PATH:
+    type: string
+    description: "Absolute path to the local soul documents directory. Contains SOUL.md, MEMORY.md, AGENTS.md, HEARTBEAT.md, AGENT_CONTRACT.md, and memory/. Deployed out-of-band via Tailscale/RDP. Never in the public repo."
+
   GEMINI_API_KEY:
     type: string
     description: "Google Gemini API key."

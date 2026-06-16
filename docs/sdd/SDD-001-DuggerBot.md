@@ -410,8 +410,26 @@ Every component has exactly one job. The job is stated in one sentence.
 
 ## §8 Soul Documents
 
-These files live at the repo root. They are not code. They are TOBOR's identity and memory.
-They are committed to the repo. They are loaded at agent startup. They define who TOBOR is.
+Soul documents are machine-local. They are deployed out-of-band via Tailscale/RDP.
+They are never in the public repo. The repo contains the code that reads them, not
+the documents themselves.
+
+Each instance has a `SOUL_PATH` environment variable (set in `.env.local`) pointing
+to a local directory outside the repo. That directory contains:
+
+- `SOUL.md` — TOBOR's identity document
+- `MEMORY.md` — Curated long-term memory
+- `AGENTS.md` — Operational playbook
+- `HEARTBEAT.md` — Pending tasks queue
+- `AGENT_CONTRACT.md` — Architectural constraints
+- `memory/` — Daily memory logs (YYYY-MM-DD.md)
+
+`duggerbot/soul/soul.py` and `duggerbot/soul/memory.py` resolve file paths from
+`SOUL_PATH` at runtime. If `SOUL_PATH` is not set or the directory does not exist,
+startup fails with a clear error.
+
+The seed templates below document the initial content of each file. They are
+populated manually when setting up an instance — not by the repo.
 
 ### SOUL.md (seed template)
 
