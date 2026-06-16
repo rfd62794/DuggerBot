@@ -273,13 +273,21 @@ async def test_update_check_defers_when_inflight():
             raise asyncio.CancelledError
         return
 
-    with patch("duggerbot.mcp.server.asyncio.sleep", side_effect=fake_sleep), \
-         patch("duggerbot.version.subprocess.run") as mock_run:
+    def fake_run(*args, **kwargs):
         from unittest.mock import MagicMock as MM
+        cmd = args[0]
         r = MM()
         r.returncode = 0
-        r.stdout = "200\n"
-        mock_run.return_value = r
+        if "origin/main" in cmd:
+            r.stdout = "200\n"
+        elif "HEAD" in cmd:
+            r.stdout = "174\n"
+        else:
+            r.stdout = ""
+        return r
+
+    with patch("duggerbot.mcp.server.asyncio.sleep", side_effect=fake_sleep), \
+         patch("duggerbot.version.subprocess.run", side_effect=fake_run):
 
         with pytest.raises(asyncio.CancelledError):
             await _update_check_loop(mock_app)

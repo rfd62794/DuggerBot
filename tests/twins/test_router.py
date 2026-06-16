@@ -228,3 +228,57 @@ def test_twin_router_mounted_on_mcp_app():
     from duggerbot.twins.router import twin_router
     route_paths = [r.path for r in twin_router.routes]
     assert "/heartbeat" in route_paths
+
+
+# ---------------------------------------------------------------------------
+# Phase 3.6 — POST /twin/upgrade
+# ---------------------------------------------------------------------------
+
+
+async def test_upgrade_endpoint_defers_when_inflight(production_app):
+    """has_inflight_work True → accepted False."""
+    production_app.state.twin_coordinator.has_inflight_work = AsyncMock(return_value=True)
+    async with AsyncClient(
+        transport=ASGITransport(app=production_app), base_url="http://test"
+    ) as client:
+        resp = await client.post(
+            "/twin/upgrade",
+            headers={"Authorization": f"Bearer {TOKEN}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["accepted"] is False
+        assert "in-flight" in data["reason"]
+
+
+async def test_upgrade_endpoint_accepts_when_update_available(production_app, monkeypatch):
+    """no inflight + update available → accepted True."""
+    production_app.state.twin_coordinator.has_inflight_work = AsyncMock(return_value=False)
+
+    def fake_run(*args, **kwargs):
+        from unittest.mock import MagicMock as MM
+        cmd = args[0]
+        r = MM()
+        if "origin/main" in cmd:
+            r.returncode = 0
+            r.stdout = "200\n"
+        elif "HEAD" in cmd:
+            r.returncode = 0
+            r.stdout = "174\n"
+        else:
+            r.returncode = 0
+            r.stdout = ""
+        return r
+
+    from unittest.mock import patch
+    with patch("duggerbot.version.subprocess.run", side_effect=fake_run):
+        async with AsyncClient(
+            transport=ASGITransport(app=production_app), base_url="http://test"
+        ) as client:
+            resp = await client.post(
+                "/twin/upgrade",
+                headers={"Authorization": f"Bearer {TOKEN}"},
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["accepted"] is True
