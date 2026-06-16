@@ -1,0 +1,53 @@
+# Environment — never commit real credentials
+.env.local
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+
+# Coverage
+.coverage
+htmlcov/
+coverage.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# SQLite databases (runtime — not committed)
+*.db
+*.sqlite3
+
+# uv
+.python-version
+
+# Project files (not part of source)
+README.md
+AGENTS.md
+AGENT_CONTRACT.md
+MEMORY.md
+HEARTBEAT.md
+SOUL.md
+
+# Private Scripts
+scripts/*.ps1
+scripts/*.sh

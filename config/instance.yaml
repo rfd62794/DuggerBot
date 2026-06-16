@@ -1,0 +1,61 @@
+# DuggerBot — Instance Configuration Schema
+# Documents the expected .env.local variables per instance.
+# Actual values live in .env.local (gitignored). This file is the schema reference.
+
+required_variables:
+  INSTANCE_ROLE:
+    type: string
+    values: [production, development]
+    description: "This instance's role. Tower=production, Nitro 5=development."
+
+  TOWER_HOST:
+    type: string
+    description: "Tailscale IP of the Tower instance."
+    default: "100.106.80.49"
+
+  GEMINI_API_KEY:
+    type: string
+    description: "Google Gemini API key."
+
+  GROQ_API_KEY:
+    type: string
+    description: "Groq API key."
+
+  OPENROUTER_API_KEY:
+    type: string
+    description: "OpenRouter API key."
+
+  ANTHROPIC_API_KEY:
+    type: string
+    description: "Anthropic Claude API key."
+
+  OLLAMA_HOST:
+    type: string
+    description: "Ollama server URL."
+    default: "http://localhost:11434"
+
+  OLLAMA_MODEL:
+    type: string
+    description: "Ollama model to use on this instance."
+    values_by_role:
+      production: "phi3.5:3.8b"
+      development: "qwen2.5:3b"
+
+  MCP_PORT:
+    type: integer
+    description: "Port for the MCP FastAPI server."
+    default: 8001
+
+  MCP_AUTH_TOKEN:
+    type: string
+    description: "Bearer token for MCP server auth. Generate with: python -c 'import secrets; print(secrets.token_hex(32))'"
+
+  PRESENCE_PORT:
+    type: integer
+    description: "Port for the twin presence heartbeat endpoint."
+    default: 8002
+
+  CLAUDE_DAILY_CAP_USD:
+    type: float
+    description: "Hard daily cap for Claude API spend. ADR-005."
+    default: 0.25
