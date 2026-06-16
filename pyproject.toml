@@ -16,6 +16,7 @@ dependencies = [
     "anthropic>=0.28.0",
     "openai>=1.35.0",      # OpenRouter uses OpenAI-compatible API
     "ollama>=0.2.0",
+    "mcp>=1.27.2",
 ]
 
 [project.optional-dependencies]
