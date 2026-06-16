@@ -45,6 +45,11 @@ required_variables:
       production: "phi3.5:3.8b"
       development: "qwen2.5:3b"
 
+  DB_PATH:
+    type: string
+    description: "Path to SQLite usage ledger database file."
+    default: "duggerbot.db"
+
   MCP_PORT:
     type: integer
     description: "Port for the MCP FastAPI server."
