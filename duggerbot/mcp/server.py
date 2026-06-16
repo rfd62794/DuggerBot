@@ -13,6 +13,7 @@ from mcp.server.lowlevel import Server
 from mcp.server.sse import SseServerTransport
 from mcp.types import TextContent
 
+from duggerbot.heartbeat import heartbeat_loop
 from duggerbot.mcp.auth import verify_token
 from duggerbot.mcp.handlers import (
     DEV_TOOL_HANDLERS,
@@ -117,9 +118,11 @@ async def lifespan(app: FastAPI):
     app.state.sse_transport = SseServerTransport("/messages/")
 
     update_task = asyncio.create_task(_update_check_loop(app))
+    heartbeat_task = asyncio.create_task(heartbeat_loop())
 
     yield
 
+    heartbeat_task.cancel()
     update_task.cancel()
     await http_client.aclose()
 
