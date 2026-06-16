@@ -5,6 +5,11 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 
 
+class CallerIdentity(str, Enum):
+    CLAUDE = "claude"
+    DEVIN = "devin"
+
+
 class TaskType(str, Enum):
     RESEARCH = "research"
     FAST_LOOKUP = "fast_lookup"
@@ -45,6 +50,7 @@ class TaskRequest(BaseModel):
     prompt: str
     context_size: int = 0
     require_local: bool = False           # Force Ollama — private tasks only
+    task_source: str | None = None        # scheduled, heartbeat, morning_dispatch, etc.
 
 
 class RouteResult(BaseModel):

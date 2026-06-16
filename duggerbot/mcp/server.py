@@ -26,6 +26,7 @@ from duggerbot.router.health import HealthChecker
 from duggerbot.router.ledger import UsageLedger
 from duggerbot.router.registry import ProviderRegistry
 from duggerbot.router.router import ModelRouter
+from duggerbot.twins.router import twin_router
 
 SERVER_NAME = "duggerbot"
 SERVER_VERSION = "0.1.0"
@@ -97,6 +98,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(twin_router, prefix="/twin")
 
 
 @app.get("/health")

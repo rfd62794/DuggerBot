@@ -5,6 +5,7 @@ import json
 from mcp.types import TextContent
 
 from duggerbot.router.models import (
+    CallerIdentity,
     TaskRequest,
     TaskType,
     ProviderExhaustedError,
@@ -17,9 +18,16 @@ from duggerbot.router.registry import ProviderRegistry
 
 
 async def handle_research(
-    router: ModelRouter, arguments: dict
+    router: ModelRouter,
+    arguments: dict,
+    caller: CallerIdentity = CallerIdentity.CLAUDE,
 ) -> list[TextContent]:
-    """Route research query. Returns RouteResult as TextContent."""
+    """Route research query. Returns RouteResult as TextContent.
+
+    When caller is DEVIN: exclude 'claude' from provider chain.
+    Never consume Claude API budget on Devin's behalf.
+    """
+    exclude = ["claude"] if caller == CallerIdentity.DEVIN else None
     request = TaskRequest(
         task_type=TaskType.RESEARCH,
         prompt=arguments.get("query", ""),
@@ -44,9 +52,15 @@ async def handle_research(
 
 
 async def handle_fast_lookup(
-    router: ModelRouter, arguments: dict
+    router: ModelRouter,
+    arguments: dict,
+    caller: CallerIdentity = CallerIdentity.CLAUDE,
 ) -> list[TextContent]:
-    """Route fast lookup. Groq preferred per routing.yaml."""
+    """Route fast lookup. Groq preferred per routing.yaml.
+
+    When caller is DEVIN: exclude 'claude' from provider chain.
+    """
+    exclude = ["claude"] if caller == CallerIdentity.DEVIN else None
     request = TaskRequest(
         task_type=TaskType.FAST_LOOKUP,
         prompt=arguments.get("query", ""),
@@ -68,9 +82,15 @@ async def handle_fast_lookup(
 
 
 async def handle_local_inference(
-    router: ModelRouter, arguments: dict
+    router: ModelRouter,
+    arguments: dict,
+    caller: CallerIdentity = CallerIdentity.CLAUDE,
 ) -> list[TextContent]:
-    """Route to Ollama. require_local=True on TaskRequest."""
+    """Route to Ollama. require_local=True on TaskRequest.
+
+    When caller is DEVIN: exclude 'claude' from provider chain.
+    """
+    exclude = ["claude"] if caller == CallerIdentity.DEVIN else None
     request = TaskRequest(
         task_type=TaskType.LOCAL_INFERENCE,
         prompt=arguments.get("prompt", ""),

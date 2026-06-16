@@ -1,4 +1,4 @@
-"""Tests for duggerbot.mcp.auth — Phase 2."""
+"""Tests for duggerbot.mcp.auth — Phase 2 + ISSUE-002."""
 
 from unittest.mock import patch
 
@@ -6,9 +6,11 @@ import pytest
 from fastapi import HTTPException
 
 from duggerbot.mcp.auth import verify_token
+from duggerbot.router.models import CallerIdentity
 
 
 TOKEN = "test-secret-token-abc123"
+DEVIN_TOKEN = "devin-secret-token-xyz789"
 
 
 @pytest.fixture(autouse=True)
@@ -17,8 +19,9 @@ def _set_token(monkeypatch):
 
 
 async def test_valid_token_passes():
-    """Correct token → no exception raised."""
-    await verify_token(authorization=f"Bearer {TOKEN}")
+    """Correct token → returns CallerIdentity.CLAUDE."""
+    result = await verify_token(authorization=f"Bearer {TOKEN}")
+    assert result == CallerIdentity.CLAUDE
 
 
 async def test_missing_header_401():
@@ -59,8 +62,9 @@ async def test_whitespace_stripped_still_invalid():
 async def test_timing_safe_comparison_used():
     """Verify secrets.compare_digest called, not ==."""
     with patch("duggerbot.mcp.auth.secrets.compare_digest", return_value=True) as mock_cmp:
-        await verify_token(authorization="Bearer some-token")
+        result = await verify_token(authorization="Bearer some-token")
         mock_cmp.assert_called_once()
+        assert result == CallerIdentity.CLAUDE
 
 
 async def test_missing_env_var_raises_runtime_error(monkeypatch):
@@ -68,3 +72,18 @@ async def test_missing_env_var_raises_runtime_error(monkeypatch):
     monkeypatch.delenv("MCP_AUTH_TOKEN", raising=False)
     with pytest.raises(RuntimeError, match="MCP_AUTH_TOKEN"):
         await verify_token(authorization="Bearer anything")
+
+
+async def test_claude_token_returns_claude_identity():
+    """MCP_AUTH_TOKEN match → returns CallerIdentity.CLAUDE."""
+    result = await verify_token(authorization=f"Bearer {TOKEN}")
+    assert result is CallerIdentity.CLAUDE
+    assert isinstance(result, CallerIdentity)
+
+
+async def test_devin_token_returns_devin_identity(monkeypatch):
+    """DEVIN_AUTH_TOKEN match → returns CallerIdentity.DEVIN."""
+    monkeypatch.setenv("DEVIN_AUTH_TOKEN", DEVIN_TOKEN)
+    result = await verify_token(authorization=f"Bearer {DEVIN_TOKEN}")
+    assert result is CallerIdentity.DEVIN
+    assert isinstance(result, CallerIdentity)

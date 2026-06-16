@@ -59,10 +59,25 @@ required_variables:
     type: string
     description: "Bearer token for MCP server auth. Generate with: python -c 'import secrets; print(secrets.token_hex(32))'"
 
+  DEVIN_AUTH_TOKEN:
+    type: string
+    description: "Bearer token for Devin MCP access. Leave blank to disable Devin access."
+    default: ""
+
   PRESENCE_PORT:
     type: integer
     description: "Port for the twin presence heartbeat endpoint."
     default: 8002
+
+  DELEGATION_TIMEOUT_SECONDS:
+    type: float
+    description: "Max wait for Remote TOBOR task delegation response. Configurable without ADR."
+    default: 5
+
+  STATE_REQUEST_TIMEOUT_SECONDS:
+    type: float
+    description: "Max wait for Tower usage state before routing blind. Configurable without ADR."
+    default: 2
 
   TELEGRAM_BOT_TOKEN:
     type: string
