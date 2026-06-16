@@ -59,6 +59,10 @@ required_variables:
     description: "Port for the twin presence heartbeat endpoint."
     default: 8002
 
+  TELEGRAM_BOT_TOKEN:
+    type: string
+    description: "Telegram bot token. Carries over from PrivyBot — same bot, same channel."
+
   CLAUDE_DAILY_CAP_USD:
     type: float
     description: "Hard daily cap for Claude API spend. ADR-005."
