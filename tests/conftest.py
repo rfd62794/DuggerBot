@@ -1,54 +1,120 @@
-"""Shared fixtures, mock providers, test config."""
+"""Shared fixtures for all router tests."""
 
+from pathlib import Path
+
+import httpx
 import pytest
+
+from duggerbot.router.models import Provider
+from duggerbot.router.ledger import UsageLedger
+
+
+PROVIDERS_YAML_CONTENT = """\
+providers:
+  gemini:
+    role: primary
+    models:
+      - gemini-2.0-flash
+    free_tier:
+      rpd: 1500
+      rpm: 15
+      tpm: 1000000
+    cost_per_1k_tokens: 0.0
+    enabled: true
+    health_endpoint: "https://generativelanguage.googleapis.com/v1beta/models"
+
+  groq:
+    role: speed
+    models:
+      - llama-3.1-70b-versatile
+    free_tier:
+      rpd: 6000
+      rpm: 30
+    cost_per_1k_tokens: 0.0
+    enabled: true
+    health_endpoint: "https://api.groq.com/openai/v1/models"
+
+  ollama:
+    role: local
+    models:
+      - phi3.5:3.8b
+    cost_per_1k_tokens: 0.0
+    enabled: true
+    health_endpoint: "http://localhost:11434/api/tags"
+    keep_alive: -1
+
+  openrouter:
+    role: access
+    models:
+      - meta-llama/llama-3.1-70b-instruct
+    cost_per_1k_tokens: 0.001
+    enabled: true
+    health_endpoint: "https://openrouter.ai/api/v1/models"
+
+  claude:
+    role: reserved
+    models:
+      - claude-sonnet-4-6
+    daily_cap_usd: 0.25
+    cost_per_1k_input_tokens: 0.003
+    cost_per_1k_output_tokens: 0.015
+    enabled: true
+    health_endpoint: "https://api.anthropic.com/v1/models"
+"""
+
+ROUTING_YAML_CONTENT = """\
+routing:
+  default_chain:
+    - gemini
+    - groq
+    - ollama
+    - openrouter
+    - claude
+
+  task_overrides:
+    research:
+      - gemini
+      - openrouter
+      - claude
+    fast_lookup:
+      - groq
+      - gemini
+      - openrouter
+    local_inference:
+      - ollama
+      - groq
+"""
 
 
 @pytest.fixture
-def mock_providers_yaml(tmp_path):
-    """Provide a temporary providers.yaml for testing."""
+def providers_yaml(tmp_path) -> Path:
+    """Write a minimal providers.yaml to tmp_path and return the path."""
     config = tmp_path / "providers.yaml"
-    config.write_text("""
-providers:
-  gemini:
-    name: "Gemini Flash"
-    tier: "free_first"
-    role: "primary_inference"
-    base_url: "https://generativelanguage.googleapis.com"
-    models: ["gemini-2.0-flash"]
-    limits:
-      requests_per_day: 1500
-      tokens_per_minute: 1000000
-      requests_per_minute: 15
-    cost_per_1k_tokens: 0.0
-    env_key: "GEMINI_API_KEY"
-
-  groq:
-    name: "Groq"
-    tier: "free"
-    role: "speed_tier"
-    base_url: "https://api.groq.com/openai/v1"
-    models: ["llama-3.1-70b-versatile"]
-    limits:
-      requests_per_day: 6000
-      requests_per_minute: 30
-    cost_per_1k_tokens: 0.0
-    env_key: "GROQ_API_KEY"
-""")
+    config.write_text(PROVIDERS_YAML_CONTENT)
     return config
 
 
 @pytest.fixture
-def mock_env(monkeypatch):
-    """Set up mock environment variables for testing."""
-    monkeypatch.setenv("INSTANCE_ROLE", "development")
-    monkeypatch.setenv("TOWER_HOST", "100.106.80.49")
-    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
-    monkeypatch.setenv("GROQ_API_KEY", "test-groq-key")
-    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-key")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-anthropic-key")
-    monkeypatch.setenv("OLLAMA_HOST", "http://localhost:11434")
-    monkeypatch.setenv("OLLAMA_MODEL", "phi3.5:3.8b")
-    monkeypatch.setenv("MCP_PORT", "8001")
-    monkeypatch.setenv("MCP_AUTH_TOKEN", "test-token-abc123")
-    monkeypatch.setenv("PRESENCE_PORT", "8002")
-    monkeypatch.setenv("CLAUDE_DAILY_CAP_USD", "0.25")
+def routing_yaml(tmp_path) -> Path:
+    """Write a minimal routing.yaml to tmp_path and return the path."""
+    config = tmp_path / "routing.yaml"
+    config.write_text(ROUTING_YAML_CONTENT)
+    return config
+
+
+@pytest.fixture
+def mock_http_client():
+    """Return an httpx.AsyncClient backed by httpx.MockTransport."""
+    def _make_client(handler):
+        transport = httpx.MockTransport(handler)
+        return httpx.AsyncClient(transport=transport)
+    return _make_client
+
+
+@pytest.fixture
+async def ledger(tmp_path) -> UsageLedger:
+    """Initialized UsageLedger backed by a tmp SQLite file."""
+    db_path = tmp_path / "test_usage.db"
+    l = UsageLedger(db_path)
+    await l.initialize()
+    return l
