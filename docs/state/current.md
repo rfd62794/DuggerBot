@@ -1,5 +1,5 @@
-phase: 'Phase 3.6 — Version Tracking and Self-Update'
-certified_floor: '195 passed, 0 failed, 0 skipped'
+phase: 'Phase 3.7 — Deployment Gate'
+certified_floor: '199 passed, 0 failed, 0 skipped'
 coverage_overall: '96% (twins+mcp), 97% (router)'
 coverage_per_module:
   # Phase 1 — Provider Router
@@ -26,7 +26,7 @@ coverage_per_module:
   version: '85%'
 what_is_next: 'Phase 4 — RALPH Rebuilt'
 privybot_status: running
-duggerbot_status: version tracking and self-update certified
+duggerbot_status: deployment gate certified (Part A — code), Part B pending manual verification
 tobor_status: dormant
 oq_001: 'RESOLVED — SSE, port 8001'
 oq_003: 'RESOLVED — REST API on Tower for shared state'
