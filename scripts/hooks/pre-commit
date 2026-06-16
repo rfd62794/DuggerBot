@@ -1,0 +1,6 @@
+#!/bin/sh
+# Bake git revision count into _version_info.py at commit time.
+# This makes get_revision() work without git in PATH (e.g. NSSM LocalSystem).
+REVISION=$(git rev-list --count HEAD)
+echo "REVISION = $REVISION" > duggerbot/_version_info.py
+git add duggerbot/_version_info.py

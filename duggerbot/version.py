@@ -23,6 +23,11 @@ def _run_git(*args: str) -> tuple[int, str]:
 
 def get_revision() -> int:
     """Return git commit count on HEAD. Returns 0 if git unavailable."""
+    try:
+        from duggerbot._version_info import REVISION
+        return REVISION
+    except ImportError:
+        pass
     code, out = _run_git("rev-list", "--count", "HEAD")
     return int(out) if code == 0 and out.isdigit() else 0
 
