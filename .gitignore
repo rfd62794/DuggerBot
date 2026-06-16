@@ -33,6 +33,9 @@ Thumbs.db
 # Logs
 *.log
 
+# Heartbeat response (runtime output)
+docs/heartbeat_response.md
+
 # SQLite databases (runtime — not committed)
 *.db
 *.sqlite3
