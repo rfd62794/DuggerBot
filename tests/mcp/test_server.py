@@ -256,8 +256,9 @@ async def test_health_response_includes_version_from_module(client):
 async def test_update_check_defers_when_inflight():
     """coordinator.has_inflight_work() True → update loop does not exit."""
     from unittest.mock import patch, AsyncMock as AM
-    from duggerbot.mcp.server import _update_check_loop
+    from duggerbot.mcp.server import _update_check_loop, last_tool_call_time
     import asyncio
+    import time
 
     mock_app = MagicMock()
     mock_coordinator = AM()
@@ -286,8 +287,12 @@ async def test_update_check_defers_when_inflight():
             r.stdout = ""
         return r
 
+    # Set last_tool_call_time to >5 min ago so time check passes, then inflight check happens
+    old_time = time.time() - 400
+
     with patch("duggerbot.mcp.server.asyncio.sleep", side_effect=fake_sleep), \
-         patch("duggerbot.version.subprocess.run", side_effect=fake_run):
+         patch("duggerbot.version.subprocess.run", side_effect=fake_run), \
+         patch("duggerbot.mcp.server.last_tool_call_time", old_time):
 
         with pytest.raises(asyncio.CancelledError):
             await _update_check_loop(mock_app)
