@@ -293,3 +293,17 @@ async def test_update_check_defers_when_inflight():
             await _update_check_loop(mock_app)
 
     mock_coordinator.has_inflight_work.assert_called()
+
+
+# ---------------------------------------------------------------------------
+# Phase 4a.2 — Deferred updates (5 min idle required)
+# ---------------------------------------------------------------------------
+
+def test_last_tool_call_time_tracks_activity():
+    """last_tool_call_time exists and is initialized to recent timestamp."""
+    import time
+    from duggerbot.mcp import server
+    # Should exist and be a recent timestamp
+    assert hasattr(server, "last_tool_call_time")
+    assert isinstance(server.last_tool_call_time, float)
+    assert time.time() - server.last_tool_call_time < 60  # Initialized recently

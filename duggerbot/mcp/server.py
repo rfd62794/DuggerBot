@@ -3,6 +3,7 @@
 import asyncio
 import json
 import os
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -36,17 +37,24 @@ SERVER_NAME = "duggerbot"
 TOBOR_IDENTITY = "TOBOR"
 DEFAULT_DB_PATH = "duggerbot.db"
 
+# Track last tool call for deferred updates (5 min idle required)
+last_tool_call_time = time.time()
+
 
 async def _update_check_loop(app: FastAPI) -> None:
-    """Background task: periodically check for updates. Defers if in-flight work."""
+    """Background task: periodically check for updates. Defers if active session."""
     from duggerbot.version import is_update_available, apply_update_and_exit
     interval = int(os.environ.get("UPDATE_CHECK_INTERVAL_MINUTES", "60")) * 60
     retry = int(os.environ.get("UPDATE_CHECK_RETRY_MINUTES", "5")) * 60
+    idle_threshold = 300  # 5 minutes
 
     while True:
         await asyncio.sleep(interval)
         try:
             if not is_update_available():
+                continue
+            # Defer if tools were called recently (active session)
+            if time.time() - last_tool_call_time < idle_threshold:
                 continue
             coordinator = getattr(app.state, "twin_coordinator", None)
             if coordinator and await coordinator.has_inflight_work():
@@ -101,6 +109,8 @@ async def lifespan(app: FastAPI):
 
     @mcp_server.call_tool()
     async def call_tool(name: str, arguments: dict) -> list[TextContent]:
+        global last_tool_call_time
+        last_tool_call_time = time.time()
         if name in DEV_TOOL_HANDLERS:
             return await DEV_TOOL_HANDLERS[name](arguments)
         if name not in TOOL_HANDLERS:
