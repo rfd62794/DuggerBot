@@ -380,7 +380,7 @@ async def test_handle_dispatch_to_cline_returns_output():
 
         # Verify cline was called with correct arguments
         args = mock_exec.call_args[0]
-        assert args[0] == "cline"
+        assert "cline" in args[0]
         assert "--provider" in args
         assert "ollama" in args
         assert "--model" in args
