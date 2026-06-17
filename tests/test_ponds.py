@@ -1,7 +1,7 @@
 """Tests for duggerbot.ponds — Phase 4b."""
 
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 
 from duggerbot.ponds import self_status
 from duggerbot.ponds import devto, blog, youtube, calendar
@@ -65,11 +65,11 @@ async def test_devto_returns_stats_on_success():
     ]
     mock_response.raise_for_status = MagicMock()
 
-    with patch("httpx.AsyncClient") as mock_client:
+    with patch("duggerbot.ponds.devto.httpx.AsyncClient") as mock_client:
         mock_ctx = MagicMock()
-        mock_ctx.__aenter__ = MagicMock(return_value=mock_ctx)
-        mock_ctx.__aexit__ = MagicMock(return_value=None)
-        mock_ctx.get = MagicMock(return_value=mock_response)
+        mock_ctx.__aenter__ = AsyncMock(return_value=mock_ctx)
+        mock_ctx.__aexit__ = AsyncMock(return_value=None)
+        mock_ctx.get = AsyncMock(return_value=mock_response)
         mock_client.return_value = mock_ctx
 
         with patch.dict("os.environ", {"DEVTO_API_KEY": "test_key"}, clear=False):
@@ -96,11 +96,11 @@ async def test_devto_summary_contains_article_count():
     ]
     mock_response.raise_for_status = MagicMock()
 
-    with patch("httpx.AsyncClient") as mock_client:
+    with patch("duggerbot.ponds.devto.httpx.AsyncClient") as mock_client:
         mock_ctx = MagicMock()
-        mock_ctx.__aenter__ = MagicMock(return_value=mock_ctx)
-        mock_ctx.__aexit__ = MagicMock(return_value=None)
-        mock_ctx.get = MagicMock(return_value=mock_response)
+        mock_ctx.__aenter__ = AsyncMock(return_value=mock_ctx)
+        mock_ctx.__aexit__ = AsyncMock(return_value=None)
+        mock_ctx.get = AsyncMock(return_value=mock_response)
         mock_client.return_value = mock_ctx
 
         with patch.dict("os.environ", {"DEVTO_API_KEY": "test_key"}, clear=False):
@@ -120,11 +120,11 @@ async def test_blog_returns_posts_on_success():
     ]
     mock_response.raise_for_status = MagicMock()
 
-    with patch("httpx.AsyncClient") as mock_client:
+    with patch("duggerbot.ponds.blog.httpx.AsyncClient") as mock_client:
         mock_ctx = MagicMock()
-        mock_ctx.__aenter__ = MagicMock(return_value=mock_ctx)
-        mock_ctx.__aexit__ = MagicMock(return_value=None)
-        mock_ctx.get = MagicMock(return_value=mock_response)
+        mock_ctx.__aenter__ = AsyncMock(return_value=mock_ctx)
+        mock_ctx.__aexit__ = AsyncMock(return_value=None)
+        mock_ctx.get = AsyncMock(return_value=mock_response)
         mock_client.return_value = mock_ctx
 
         with patch.dict("os.environ", {
@@ -152,11 +152,11 @@ async def test_blog_summary_contains_post_title():
     ]
     mock_response.raise_for_status = MagicMock()
 
-    with patch("httpx.AsyncClient") as mock_client:
+    with patch("duggerbot.ponds.blog.httpx.AsyncClient") as mock_client:
         mock_ctx = MagicMock()
-        mock_ctx.__aenter__ = MagicMock(return_value=mock_ctx)
-        mock_ctx.__aexit__ = MagicMock(return_value=None)
-        mock_ctx.get = MagicMock(return_value=mock_response)
+        mock_ctx.__aenter__ = AsyncMock(return_value=mock_ctx)
+        mock_ctx.__aexit__ = AsyncMock(return_value=None)
+        mock_ctx.get = AsyncMock(return_value=mock_response)
         mock_client.return_value = mock_ctx
 
         with patch.dict("os.environ", {
@@ -185,7 +185,7 @@ async def test_calendar_returns_error_when_no_credentials():
     with patch("duggerbot.ponds.google_auth.get_credentials", return_value=None):
         result = await calendar.run()
         assert "error" in result
-        assert "credentials" in result["summary"]
+        assert "not configured" in result["summary"]
 
 
 # ---------------------------------------------------------------------------
