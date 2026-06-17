@@ -8,10 +8,24 @@ from duggerbot.directives.schema import (
     StepStatus,
     AgentType,
 )
+from duggerbot.directives.store import (
+    write_active_directive,
+    get_active_directive,
+    get_current_step,
+    advance_step,
+    escalate_step,
+    archive_directive,
+)
 
 __all__ = [
     "Directive",
     "DirectiveStep", 
     "StepStatus",
     "AgentType",
+    "write_active_directive",
+    "get_active_directive",
+    "get_current_step",
+    "advance_step",
+    "escalate_step",
+    "archive_directive",
 ]

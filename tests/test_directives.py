@@ -1,6 +1,99 @@
 """Tests for the directive management system."""
+import json
 import pytest
 from duggerbot.directives import Directive, DirectiveStep, StepStatus, AgentType
+
+
+from unittest.mock import patch, AsyncMock
+
+# -----------------------------------------------------------------------------
+# Step 1: Schema tests (239/0/0 floor)
+# -----------------------------------------------------------------------------
+
+
+# -----------------------------------------------------------------------------
+# Step 2: Store tests (242/0/0 floor)
+# -----------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_write_and_read_directive():
+    """write_active_directive stores, get_active_directive retrieves."""
+    from duggerbot.directives import write_active_directive, get_active_directive
+    
+    directive: Directive = {
+        "id": "test-001",
+        "title": "Test Directive",
+        "description": "A test",
+        "preflight_floor": "237/0/0",
+        "steps": [],
+        "created_at": "2024-06-16T00:00:00Z",
+        "author": "test",
+    }
+    
+    with patch("duggerbot.directives.store.write_context", new_callable=AsyncMock) as mock_write:
+        await write_active_directive(directive)
+        # Should write 3 keys
+        assert mock_write.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_advance_step_increments_pointer():
+    """advance_step marks step complete and moves to next."""
+    from duggerbot.directives import advance_step, get_active_directive
+    
+    step1: DirectiveStep = {
+        "id": 1, "title": "Step 1", "files": [], "readonly_files": [],
+        "task": "Do step 1", "tests": [], "floor": "239/0/0", "commit": "Done",
+        "stop_rules": [], "agent": "devin", "status": "in_progress",
+    }
+    step2: DirectiveStep = {
+        "id": 2, "title": "Step 2", "files": [], "readonly_files": [],
+        "task": "Do step 2", "tests": [], "floor": "242/0/0", "commit": "Done",
+        "stop_rules": [], "agent": "devin", "status": "pending",
+    }
+    directive: Directive = {
+        "id": "test-002",
+        "title": "Test",
+        "description": "Test",
+        "preflight_floor": "237/0/0",
+        "steps": [step1, step2],
+        "created_at": "2024-06-16T00:00:00Z",
+        "author": "test",
+    }
+    
+    with patch("duggerbot.directives.store.read_context", return_value=json.dumps(directive)), \
+         patch("duggerbot.directives.store.write_context", new_callable=AsyncMock) as mock_write:
+        
+        result = await advance_step(1)
+        assert result is True  # More steps remain
+
+
+@pytest.mark.asyncio
+async def test_escalate_marks_step_status():
+    """escalate_step marks step escalated and halts directive."""
+    from duggerbot.directives import escalate_step
+    
+    step1: DirectiveStep = {
+        "id": 1, "title": "Step 1", "files": [], "readonly_files": [],
+        "task": "Do step 1", "tests": [], "floor": "239/0/0", "commit": "Done",
+        "stop_rules": [], "agent": "devin", "status": "in_progress",
+    }
+    directive: Directive = {
+        "id": "test-003",
+        "title": "Test",
+        "description": "Test",
+        "preflight_floor": "237/0/0",
+        "steps": [step1],
+        "created_at": "2024-06-16T00:00:00Z",
+        "author": "test",
+    }
+    
+    with patch("duggerbot.directives.store.read_context", return_value=json.dumps(directive)), \
+         patch("duggerbot.directives.store.write_context", new_callable=AsyncMock) as mock_write:
+        
+        await escalate_step(1, "pytest failed")
+        # Should update directive and status
+        assert mock_write.call_count >= 2
 
 
 # -----------------------------------------------------------------------------
