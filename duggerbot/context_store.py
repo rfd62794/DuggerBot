@@ -5,10 +5,11 @@ Devin reads: task context, full source references, architectural decisions.
 TOBOR writes: pond outputs, health summaries.
 Claude reads: pond results, completion proofs.
 """
+import os
 import aiosqlite
 from pathlib import Path
 
-DB_PATH = Path("context.db")
+DB_PATH = Path(os.environ.get("CONTEXT_DB_PATH", "context.db"))
 
 _CREATE_TABLE = """
 CREATE TABLE IF NOT EXISTS context (

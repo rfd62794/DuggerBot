@@ -1,10 +1,20 @@
 """Tests for the directive management system."""
 import json
+import os
 import pytest
 from duggerbot.directives import Directive, DirectiveStep, StepStatus, AgentType
 
 
 from unittest.mock import patch, AsyncMock
+
+
+@pytest.fixture(autouse=True)
+def isolated_context_db(tmp_path, monkeypatch):
+    """Ensure all directive tests use isolated temp database."""
+    db_path = tmp_path / "test_context.db"
+    monkeypatch.setenv("CONTEXT_DB_PATH", str(db_path))
+    # Also patch at module level for safety
+    monkeypatch.setattr("duggerbot.context_store.DB_PATH", db_path)
 
 # -----------------------------------------------------------------------------
 # Step 1: Schema tests (239/0/0 floor)
