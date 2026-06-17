@@ -120,13 +120,19 @@ async def _call_provider(task: str) -> str:
 
 
 def _get_sleep_interval(consecutive_empty: int) -> int:
-    """Return sleep interval based on empty count (reactive pacing)."""
+    """Return sleep interval. Env var sets base; reactive pacing scales it.
+
+    consecutive_empty == 0: min(FAST_INTERVAL, base) — just did work
+    consecutive_empty 1-2:  base — normal idle
+    consecutive_empty >= 3: min(SLOW_INTERVAL, base * 2) — backing off
+    """
+    base = _get_interval()  # reads HEARTBEAT_INTERVAL_SECONDS env var
     if consecutive_empty == 0:
-        return FAST_INTERVAL
+        return min(FAST_INTERVAL, base)
     elif consecutive_empty >= 3:
-        return SLOW_INTERVAL
+        return min(SLOW_INTERVAL, base * 2)
     else:
-        return NORMAL_INTERVAL
+        return base
 
 
 async def heartbeat_loop() -> None:

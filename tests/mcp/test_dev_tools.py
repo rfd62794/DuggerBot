@@ -4,7 +4,7 @@ import asyncio
 import json
 
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from duggerbot.mcp.dev_tools import (
     DEV_TOOL_HANDLERS,
@@ -14,6 +14,7 @@ from duggerbot.mcp.dev_tools import (
     handle_check_for_update,
     handle_delete_context,
     handle_dispatch_to_cline,
+    handle_get_logs,
     handle_get_migration_manifest,
     handle_get_open_issues,
     handle_get_project_state,
@@ -389,3 +390,36 @@ async def test_handle_dispatch_to_cline_returns_output():
 
         assert data["success"] is True
         assert data["model"] == "ollama/qwen3"
+
+
+async def test_get_logs_returns_tail_lines(tmp_path):
+    """Mock log file with 100 lines, request 10 → returns last 10."""
+    log_file = tmp_path / "duggerbot.log"
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    log_lines = [f"Line {i}" for i in range(100)]
+    log_file.write_text("\n".join(log_lines), encoding="utf-8")
+
+    with patch("duggerbot.mcp.dev_tools.Path") as mock_path_class:
+        mock_path_instance = MagicMock()
+        mock_path_instance.exists.return_value = True
+        mock_path_instance.read_text.return_value = "\n".join(log_lines)
+        mock_path_class.return_value = mock_path_instance
+
+        result = await handle_get_logs({"lines": 10})
+        data = json.loads(result[0].text)
+        assert "lines" in data
+        assert data["count"] == 10
+        assert data["total_lines"] == 100
+
+
+async def test_get_logs_returns_error_when_file_missing():
+    """No log file → error key in response."""
+    with patch("duggerbot.mcp.dev_tools.Path") as mock_path_class:
+        mock_path_instance = MagicMock()
+        mock_path_instance.exists.return_value = False
+        mock_path_class.return_value = mock_path_instance
+
+        result = await handle_get_logs({"lines": 50})
+        data = json.loads(result[0].text)
+        assert "error" in data
+        assert data["lines"] == []

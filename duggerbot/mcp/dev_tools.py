@@ -325,7 +325,7 @@ async def handle_read_file(arguments: dict) -> list[TextContent]:
     if not p.is_file():
         return [TextContent(type="text", text=json.dumps({"error": f"Not a file: {p}"}))]
     try:
-        content = p.read_text(encoding="utf-8")
+        content = p.read_text(encoding="utf-8", errors="replace")
     except Exception as e:
         return [TextContent(type="text", text=json.dumps({"error": str(e)}))]
     return [TextContent(type="text", text=json.dumps({
@@ -339,6 +339,27 @@ async def handle_read_file(arguments: dict) -> list[TextContent]:
 # ---------------------------------------------------------------------------
 # Dispatch table
 # ---------------------------------------------------------------------------
+
+async def handle_get_logs(arguments: dict) -> list[TextContent]:
+    """Return last N lines of logs/duggerbot.log."""
+    lines = int(arguments.get("lines", 50))
+    log_path = Path("logs/duggerbot.log")
+
+    if not log_path.exists():
+        return [TextContent(type="text", text=json.dumps(
+            {"error": "logs/duggerbot.log not found", "lines": []}
+        ))]
+
+    try:
+        content = log_path.read_text(encoding="utf-8", errors="replace")
+        all_lines = content.splitlines()
+        tail = all_lines[-lines:] if len(all_lines) >= lines else all_lines
+        return [TextContent(type="text", text=json.dumps(
+            {"lines": tail, "count": len(tail), "total_lines": len(all_lines)}
+        ))]
+    except Exception as e:
+        return [TextContent(type="text", text=json.dumps({"error": str(e), "lines": []}))]
+
 
 DEV_TOOL_HANDLERS = {
     "verify_test_floor": handle_verify_test_floor,
@@ -354,4 +375,5 @@ DEV_TOOL_HANDLERS = {
     "delete_context": handle_delete_context,
     "list_context": handle_list_context,
     "dispatch_to_cline": handle_dispatch_to_cline,
+    "get_logs": handle_get_logs,
 }

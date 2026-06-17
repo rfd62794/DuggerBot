@@ -1,5 +1,5 @@
-phase: 'Phase 3.8.1 — Cline Dispatch Live'
-certified_floor: '216 passed, 0 failed, 0 skipped'
+phase: 'Phase 4a.1 — Telegram Live + Logging Fixes'
+certified_floor: '227 passed, 0 failed, 0 skipped'
 coverage_overall: '96% (twins+mcp), 97% (router)'
 coverage_per_module:
   # Phase 1 — Provider Router
@@ -24,13 +24,15 @@ coverage_per_module:
   mcp/dev_tools: '83%'
   # Phase 3.6 — Version Tracking and Self-Update
   version: '85%'
-what_is_next: 'Phase 4 — RALPH Rebuilt'
+what_is_next: 'Phase 4b — YouTube, Gmail, Blog credentials'
 context_store: 'live — SQLite key-value store, 4 MCP tools (write/read/delete/list)'
 cline_dispatch: 'live — Cline 3.0.24, asyncio subprocess, 300s timeout'
-heartbeat: 'live — recursive mode with NEXT marker, Gemini→OpenRouter fallback'
+heartbeat: 'live — reactive pacing uses env var as base, recursive NEXT marker'
+get_logs: 'live — tail N lines from duggerbot.log, encoding fallback'
+read_file: 'live — encoding errors=replace for Windows logs'
 privybot_status: running
-duggerbot_status: Phase 3.8 certified — context store live, 18 MCP tools
-tobor_status: running — 0.1.0.r50, development instance, Nitro 5
+duggerbot_status: Phase 4a.1 certified — Telegram live, 19 MCP tools, 227 tests
+tobor_status: running — 0.1.0.r69, Tower instance, autonomous morning round-up delivered
 oq_001: 'RESOLVED — SSE, port 8001'
 oq_003: 'RESOLVED — REST API on Tower for shared state'
 issue_001: 'OPEN — router.py coverage debt (91%) — close before Phase 4'

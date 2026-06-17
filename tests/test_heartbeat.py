@@ -65,24 +65,37 @@ def test_extract_next_task_returns_none_when_no_marker():
 
 
 def test_reactive_pacing_fast_after_task_processed():
-    """After inbox task processed, next sleep is FAST_INTERVAL."""
-    # consecutive_empty = 0 → FAST_INTERVAL
-    interval = _get_sleep_interval(0)
-    assert interval == FAST_INTERVAL
+    """After inbox task processed, next sleep is min(FAST_INTERVAL, base)."""
+    with patch("duggerbot.heartbeat._get_interval", return_value=300):
+        # consecutive_empty = 0 → min(FAST_INTERVAL, base)
+        interval = _get_sleep_interval(0)
+        assert interval == min(FAST_INTERVAL, 300)
 
 
 def test_consecutive_empty_increments_to_slow():
-    """3+ consecutive empty → sleep is SLOW_INTERVAL."""
-    # consecutive_empty = 0 → FAST
-    assert _get_sleep_interval(0) == FAST_INTERVAL
-    # consecutive_empty = 1 → NORMAL
-    assert _get_sleep_interval(1) == NORMAL_INTERVAL
-    # consecutive_empty = 2 → NORMAL
-    assert _get_sleep_interval(2) == NORMAL_INTERVAL
-    # consecutive_empty = 3 → SLOW
-    assert _get_sleep_interval(3) == SLOW_INTERVAL
-    # consecutive_empty = 4 → SLOW
-    assert _get_sleep_interval(4) == SLOW_INTERVAL
+    """3+ consecutive empty → sleep is min(SLOW_INTERVAL, base*2)."""
+    with patch("duggerbot.heartbeat._get_interval", return_value=300):
+        # consecutive_empty = 0 → min(FAST, base)
+        assert _get_sleep_interval(0) == min(FAST_INTERVAL, 300)
+        # consecutive_empty = 1 → base
+        assert _get_sleep_interval(1) == 300
+        # consecutive_empty = 2 → base
+        assert _get_sleep_interval(2) == 300
+        # consecutive_empty = 3 → min(SLOW, base*2)
+        assert _get_sleep_interval(3) == min(SLOW_INTERVAL, 600)
+        # consecutive_empty = 4 → min(SLOW, base*2)
+        assert _get_sleep_interval(4) == min(SLOW_INTERVAL, 600)
+
+
+def test_interval_uses_env_var_as_base():
+    """HEARTBEAT_INTERVAL_SECONDS=60 → _get_sleep_interval uses it as base."""
+    with patch("duggerbot.heartbeat._get_interval", return_value=60):
+        # consecutive_empty = 0 → min(300, 60) = 60
+        assert _get_sleep_interval(0) == 60
+        # consecutive_empty = 1 → base = 60
+        assert _get_sleep_interval(1) == 60
+        # consecutive_empty = 3 → min(3600, 120) = 120
+        assert _get_sleep_interval(3) == 120
 
 
 async def test_pond_runs_when_inbox_empty(tmp_path):

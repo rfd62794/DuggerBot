@@ -192,4 +192,19 @@ def get_dev_tool_list() -> list[Tool]:
                 "required": ["task", "model"],
             },
         ),
+        Tool(
+            name="get_logs",
+            description="Return last N lines of logs/duggerbot.log with encoding fallback.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "lines": {
+                        "type": "integer",
+                        "description": "Number of lines to return from end of log (default: 50)",
+                        "default": 50,
+                    }
+                },
+                "required": [],
+            },
+        ),
     ]
