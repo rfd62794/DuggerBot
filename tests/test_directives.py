@@ -1,6 +1,6 @@
 """Tests for the directive management system."""
 import pytest
-from duggerbot.directives.schema import Directive, DirectiveStep, StepStatus, AgentType
+from duggerbot.directives import Directive, DirectiveStep, StepStatus, AgentType
 
 
 # -----------------------------------------------------------------------------
