@@ -58,13 +58,15 @@ async def _run_command(
 # ---------------------------------------------------------------------------
 
 async def handle_verify_test_floor(arguments: dict) -> list[TextContent]:
-    """Run pytest --tb=no -q. Return structured pass/fail/skip counts."""
+    """Run pytest --tb=line -q. Return structured pass/fail/skip counts with stderr."""
     try:
         _, stdout, stderr = await _run_command(
             [sys.executable, "-m", "pytest", "--tb=line", "-q"],
             timeout=120.0,
         )
-        return [TextContent(type="text", text=_parse_pytest_summary(stdout))]
+        # Include stderr (failure details) in raw_summary
+        combined = stdout + "\n" + stderr if stderr else stdout
+        return [TextContent(type="text", text=_parse_pytest_summary(combined))]
     except asyncio.TimeoutError:
         return [TextContent(type="text", text=json.dumps({
             "error": "pytest timed out after 120 seconds",
