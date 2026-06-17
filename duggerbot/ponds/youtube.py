@@ -10,7 +10,10 @@ async def run() -> dict:
     """Fetch YouTube channel analytics and top video."""
     try:
         from duggerbot.ponds.google_auth import get_credentials
-        from googleapiclient.discovery import build
+        try:
+            from googleapiclient.discovery import build
+        except ImportError:
+            return {"pond": POND_NAME, "error": "googleapiclient not installed", "summary": "📺 YouTube: library not installed"}
 
         creds = get_credentials()
         if creds is None:
