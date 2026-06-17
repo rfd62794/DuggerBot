@@ -30,7 +30,15 @@ async def client(monkeypatch):
     registry.list_enabled.return_value = [gemini]
 
     sse_transport = MagicMock()
-    sse_transport.connect_sse = AsyncMock()
+    # Configure connect_sse to return async context manager when called
+    def mock_connect_sse(*args, **kwargs):
+        class AsyncContextMgr:
+            async def __aenter__(self):
+                return (AsyncMock(), AsyncMock())
+            async def __aexit__(self, *args):
+                return None
+        return AsyncContextMgr()
+    sse_transport.connect_sse = mock_connect_sse
     sse_transport.handle_post_message = AsyncMock(return_value=httpx.Response(200))
 
     @asynccontextmanager
@@ -45,6 +53,7 @@ async def client(monkeypatch):
     app.state.router = AsyncMock()
     app.state.http_client = AsyncMock()
     app.state.mcp_server = MagicMock()
+    app.state.mcp_server.run = AsyncMock()
     app.state.sse_transport = sse_transport
 
     async with httpx.AsyncClient(
@@ -312,3 +321,34 @@ def test_last_tool_call_time_tracks_activity():
     assert hasattr(server, "last_tool_call_time")
     assert isinstance(server.last_tool_call_time, float)
     assert time.time() - server.last_tool_call_time < 60  # Initialized recently
+
+
+# ---------------------------------------------------------------------------
+# Phase 4c — Session management for SSE
+# ---------------------------------------------------------------------------
+
+async def test_stale_session_returns_404(client):
+    """SSE with stale Mcp-Session-Id header returns 404 session_expired."""
+    from duggerbot.mcp import server
+    # Ensure test session ID is not in active set
+    stale_id = "stale-test-session-12345"
+    server.ACTIVE_SESSIONS.discard(stale_id)
+    
+    resp = await client.get("/sse", headers={
+        "Authorization": "Bearer test-token",
+        "Mcp-Session-Id": stale_id
+    })
+    assert resp.status_code == 404
+    assert resp.json()["error"] == "session_expired"
+
+
+async def test_new_connection_issues_session_id(client):
+    """New SSE connection without Mcp-Session-Id receives one in response."""
+    from duggerbot.mcp import server
+    
+    resp = await client.get("/sse", headers={"Authorization": "Bearer test-token"})
+    assert resp.status_code == 200
+    assert "Mcp-Session-Id" in resp.headers
+    session_id = resp.headers["Mcp-Session-Id"]
+    # Verify it's now tracked
+    assert session_id in server.ACTIVE_SESSIONS

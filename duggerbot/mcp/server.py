@@ -4,10 +4,12 @@ import asyncio
 import json
 import os
 import time
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 import httpx
+from fastapi.responses import JSONResponse
 import yaml
 from fastapi import Depends, FastAPI, Request, Response
 from mcp.server.lowlevel import Server
@@ -39,6 +41,9 @@ DEFAULT_DB_PATH = "duggerbot.db"
 
 # Track last tool call for deferred updates (5 min idle required)
 last_tool_call_time = time.time()
+
+# Active MCP sessions for SSE endpoint validation
+ACTIVE_SESSIONS: set[str] = set()
 
 
 async def _update_check_loop(app: FastAPI) -> None:
@@ -156,9 +161,22 @@ async def health_endpoint(request: Request):
 
 @app.get("/sse", dependencies=[Depends(verify_token)])
 async def sse_endpoint(request: Request):
-    """SSE endpoint — auth required. Establishes MCP SSE connection."""
+    """SSE endpoint — auth required. Establishes MCP SSE connection with session management."""
+    # Check for existing session ID
+    session_id = request.headers.get("Mcp-Session-Id")
+    
+    if session_id is not None:
+        # Stale session check
+        if session_id not in ACTIVE_SESSIONS:
+            return JSONResponse({"error": "session_expired"}, status_code=404)
+    else:
+        # New connection — issue session ID
+        session_id = str(uuid.uuid4())
+        ACTIVE_SESSIONS.add(session_id)
+    
     sse_transport = request.app.state.sse_transport
     mcp_server = request.app.state.mcp_server
+    
     async with sse_transport.connect_sse(
         request.scope, request.receive, request._send
     ) as (read_stream, write_stream):
@@ -167,7 +185,9 @@ async def sse_endpoint(request: Request):
             write_stream,
             mcp_server.create_initialization_options(),
         )
-    return Response()
+    
+    # Return session ID in response header
+    return Response(headers={"Mcp-Session-Id": session_id})
 
 
 @app.post("/messages/", dependencies=[Depends(verify_token)])
