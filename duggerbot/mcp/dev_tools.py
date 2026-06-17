@@ -61,7 +61,7 @@ async def handle_verify_test_floor(arguments: dict) -> list[TextContent]:
     """Run pytest --tb=no -q. Return structured pass/fail/skip counts."""
     try:
         _, stdout, stderr = await _run_command(
-            [sys.executable, "-m", "pytest", "--tb=no", "-q"],
+            [sys.executable, "-m", "pytest", "--tb=line", "-q"],
             timeout=120.0,
         )
         return [TextContent(type="text", text=_parse_pytest_summary(stdout))]
