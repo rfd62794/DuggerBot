@@ -182,7 +182,7 @@ async def test_lifespan_cleanup_closes_client(tmp_path, monkeypatch):
 
 
 async def test_lifespan_mcp_list_tools(tmp_path, monkeypatch):
-    """MCP server list_tools handler returns 18 tools (5 production + 13 dev)."""
+    """MCP server list_tools handler returns 24 tools (5 production + 19 dev)."""
     from mcp.types import ListToolsRequest
     from duggerbot.mcp.server import lifespan
     config_dir = _make_test_config(tmp_path)
@@ -195,7 +195,7 @@ async def test_lifespan_mcp_list_tools(tmp_path, monkeypatch):
         mcp_server = test_app.state.mcp_server
         handler = mcp_server.request_handlers[ListToolsRequest]
         result = await handler(ListToolsRequest(method="tools/list"))
-        assert len(result.root.tools) == 19
+        assert len(result.root.tools) == 24
 
 
 async def test_lifespan_mcp_call_tool(tmp_path, monkeypatch):

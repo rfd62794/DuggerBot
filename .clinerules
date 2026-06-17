@@ -16,6 +16,10 @@ phase-gated, test floors required.
 
 ## Pre-Flight (MANDATORY — run before any file edit)
 
+**STEP 0 — Check for active directive:**
+Call `get_current_step()` via TOBOR MCP before reading any file. If an active directive exists, read the step and execute it. Do not proceed to Step 1 until directive is complete or escalated.
+
+**STEP 1 — Run pytest:**
 ```
 uv run pytest
 ```
@@ -100,23 +104,25 @@ duggerbot/
   router/       Phase 1 — Provider routing, cost tracking (READ-ONLY)
   mcp/          Phase 2 — MCP server, auth, tools, handlers, dev_tools
   twins/        Phase 3 — Twin protocol, presence, state, coordinator
-  ralph/        Phase 4 — RALPH research loop (NOT YET BUILT)
+  directives/   Phase 4a.2 — Multi-agent directive orchestration
+  ralph/        Phase 4b — RALPH research loop (NOT YET BUILT)
   soul/         Soul document interface (READ-ONLY)
   version.py    Version tracking, self-update mechanism
   main.py       Entry point — uvicorn + logging setup
 ```
 
-Phase 4 (ralph/) does not exist yet. Do not create files there without
+Phase 4b (ralph/) does not exist yet. Do not create files there without
 an explicit Phase 4 directive.
 
 ---
 
 ## Current State
 
-Phase: 3.7 certified — Deployment Gate
-Floor: 200/0/0
-Next: Phase 3.8 — dispatch_to_cline tool
-TOBOR: running on Nitro 5 at 0.1.0.r50
+Phase: 4a.2 — Directive Management System
+Floor: 247/0/0
+Next: Phase 4b — Multi-agent directive execution
+TOBOR: running on Nitro 5 at 0.1.0.r73
+Directive system: LIVE — Cline calls `get_current_step()` at session start
 
 Check current state before every session:
 Call `get_project_state()` via DuggerBot MCP if connected.
