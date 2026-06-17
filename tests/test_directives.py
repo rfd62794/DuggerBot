@@ -12,8 +12,81 @@ from unittest.mock import patch, AsyncMock
 
 
 # -----------------------------------------------------------------------------
+# Step 3: MCP tool tests (245/0/0 floor)
+# -----------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_write_directive_returns_step_count():
+    """write_directive handler returns step count and directive ID."""
+    from duggerbot.mcp.dev_tools import handle_write_directive
+    
+    directive: Directive = {
+        "id": "test-directive-001",
+        "title": "Test Directive",
+        "description": "A test directive",
+        "preflight_floor": "237/0/0",
+        "steps": [
+            {"id": 1, "title": "Step 1", "files": [], "readonly_files": [],
+             "task": "Do step 1", "tests": [], "floor": "239/0/0", "commit": "Done",
+             "stop_rules": [], "agent": "devin", "status": "pending"},
+            {"id": 2, "title": "Step 2", "files": [], "readonly_files": [],
+             "task": "Do step 2", "tests": [], "floor": "242/0/0", "commit": "Done",
+             "stop_rules": [], "agent": "devin", "status": "pending"},
+        ],
+        "created_at": "2024-06-16T00:00:00Z",
+        "author": "claude",
+    }
+    
+    with patch("duggerbot.mcp.dev_tools.write_active_directive", new_callable=AsyncMock):
+        result = await handle_write_directive({"directive": json.dumps(directive)})
+        data = json.loads(result[0].text)
+        
+        assert data["success"] is True
+        assert data["directive_id"] == "test-directive-001"
+        assert data["step_count"] == 2
+        assert data["current_step"] == 1
+
+
+@pytest.mark.asyncio
+async def test_get_current_step_returns_pending_step():
+    """get_current_step handler returns step with pending status."""
+    from duggerbot.mcp.dev_tools import handle_get_current_step
+    
+    step: DirectiveStep = {
+        "id": 1, "title": "Current Step", "files": ["file.py"], "readonly_files": [],
+        "task": "Do something", "tests": ["test_something"], "floor": "239/0/0",
+        "commit": "Done", "stop_rules": ["pytest fails"], "agent": "devin",
+        "status": "pending",
+    }
+    
+    with patch("duggerbot.mcp.dev_tools.get_current_step", return_value=(1, step)):
+        result = await handle_get_current_step({})
+        data = json.loads(result[0].text)
+        
+        assert data["has_active_directive"] is True
+        assert data["step_number"] == 1
+        assert data["step"]["title"] == "Current Step"
+        assert data["step"]["status"] == "pending"
+
+
+@pytest.mark.asyncio
+async def test_complete_step_advances_pointer():
+    """complete_step handler advances to next step."""
+    from duggerbot.mcp.dev_tools import handle_complete_step
+    
+    with patch("duggerbot.mcp.dev_tools.advance_step", return_value=True):
+        result = await handle_complete_step({"step_id": 1})
+        data = json.loads(result[0].text)
+        
+        assert data["success"] is True
+        assert data["has_more_steps"] is True
+        assert data["next_step"] == 2
+
+
+# -----------------------------------------------------------------------------
 # Step 2: Store tests (242/0/0 floor)
 # -----------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_write_and_read_directive():

@@ -11,6 +11,14 @@ from pathlib import Path
 from mcp.types import TextContent
 
 from duggerbot.context_store import delete_context, list_context, read_context, write_context
+from duggerbot.directives import (
+    write_active_directive,
+    get_active_directive,
+    get_current_step,
+    advance_step,
+    escalate_step,
+    Directive,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -362,6 +370,116 @@ async def handle_get_logs(arguments: dict) -> list[TextContent]:
         return [TextContent(type="text", text=json.dumps({"error": str(e), "lines": []}))]
 
 
+# ---------------------------------------------------------------------------
+# Directive management handlers (Phase 4a.2)
+# ---------------------------------------------------------------------------
+
+async def handle_write_directive(arguments: dict) -> list[TextContent]:
+    """Store a full directive, set step 1 as current."""
+    import json
+    directive_json = arguments.get("directive", "")
+    if not directive_json:
+        return [TextContent(type="text", text=json.dumps({"error": "directive JSON is required"}))]
+    
+    try:
+        directive: Directive = json.loads(directive_json)
+        await write_active_directive(directive)
+        step_count = len(directive.get("steps", []))
+        return [TextContent(type="text", text=json.dumps({
+            "success": True,
+            "directive_id": directive.get("id"),
+            "step_count": step_count,
+            "current_step": 1,
+            "error": None,
+        }))]
+    except Exception as e:
+        return [TextContent(type="text", text=json.dumps({"success": False, "error": str(e)}))]
+
+
+async def handle_get_current_step(arguments: dict) -> list[TextContent]:
+    """Get the current step for the active directive."""
+    step_num, step = await get_current_step()
+    if step is None:
+        return [TextContent(type="text", text=json.dumps({
+            "has_active_directive": False,
+            "step_number": 0,
+            "step": None,
+            "error": None,
+        }))]
+    
+    return [TextContent(type="text", text=json.dumps({
+        "has_active_directive": True,
+        "step_number": step_num,
+        "step": step,
+        "error": None,
+    }))]
+
+
+async def handle_complete_step(arguments: dict) -> list[TextContent]:
+    """Mark step complete and advance to next."""
+    step_id = arguments.get("step_id", 0)
+    if not step_id:
+        return [TextContent(type="text", text=json.dumps({"error": "step_id is required"}))]
+    
+    try:
+        has_more = await advance_step(int(step_id))
+        return [TextContent(type="text", text=json.dumps({
+            "success": True,
+            "has_more_steps": has_more,
+            "next_step": int(step_id) + 1 if has_more else None,
+            "error": None,
+        }))]
+    except Exception as e:
+        return [TextContent(type="text", text=json.dumps({"success": False, "error": str(e)}))]
+
+
+async def handle_escalate_step(arguments: dict) -> list[TextContent]:
+    """Escalate a step (halt directive, notify Claude)."""
+    step_id = arguments.get("step_id", 0)
+    reason = arguments.get("reason", "")
+    
+    if not step_id or not reason:
+        return [TextContent(type="text", text=json.dumps({"error": "step_id and reason are required"}))]
+    
+    try:
+        await escalate_step(int(step_id), reason)
+        return [TextContent(type="text", text=json.dumps({
+            "success": True,
+            "step_id": step_id,
+            "reason": reason,
+            "status": "escalated",
+            "error": None,
+        }))]
+    except Exception as e:
+        return [TextContent(type="text", text=json.dumps({"success": False, "error": str(e)}))]
+
+
+async def handle_get_directive_status(arguments: dict) -> list[TextContent]:
+    """Get full status of active directive."""
+    directive = await get_active_directive()
+    step_num, current_step = await get_current_step()
+    
+    if directive is None:
+        return [TextContent(type="text", text=json.dumps({
+            "has_active_directive": False,
+            "error": None,
+        }))]
+    
+    steps = directive.get("steps", [])
+    completed = sum(1 for s in steps if s.get("status") == "complete")
+    
+    return [TextContent(type="text", text=json.dumps({
+        "has_active_directive": True,
+        "directive_id": directive.get("id"),
+        "title": directive.get("title"),
+        "total_steps": len(steps),
+        "completed_steps": completed,
+        "current_step": step_num,
+        "current_step_status": current_step.get("status") if current_step else None,
+        "error": None,
+    }))]
+
+
 DEV_TOOL_HANDLERS = {
     "verify_test_floor": handle_verify_test_floor,
     "check_coverage": handle_check_coverage,
@@ -377,4 +495,9 @@ DEV_TOOL_HANDLERS = {
     "list_context": handle_list_context,
     "dispatch_to_cline": handle_dispatch_to_cline,
     "get_logs": handle_get_logs,
+    "write_directive": handle_write_directive,
+    "get_current_step": handle_get_current_step,
+    "complete_step": handle_complete_step,
+    "escalate_step": handle_escalate_step,
+    "get_directive_status": handle_get_directive_status,
 }

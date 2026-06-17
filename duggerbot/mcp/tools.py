@@ -207,4 +207,67 @@ def get_dev_tool_list() -> list[Tool]:
                 "required": [],
             },
         ),
+        # Directive management tools (Phase 4a.2)
+        Tool(
+            name="write_directive",
+            description="Store a full directive JSON, set step 1 as current. Claude writes directives, Devin reads them.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "directive": {
+                        "type": "string",
+                        "description": "Full directive as JSON string (id, title, description, preflight_floor, steps[])",
+                    }
+                },
+                "required": ["directive"],
+            },
+        ),
+        Tool(
+            name="get_current_step",
+            description="Get the current step for the active directive. Returns step number and full step context.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+        ),
+        Tool(
+            name="complete_step",
+            description="Mark a step complete and advance to next. Call after verifying floor passed.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "step_id": {
+                        "type": "integer",
+                        "description": "Step number to mark complete",
+                    }
+                },
+                "required": ["step_id"],
+            },
+        ),
+        Tool(
+            name="escalate_step",
+            description="Escalate a step (halt directive, notify Claude). Use when floor fails or blocked.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "step_id": {
+                        "type": "integer",
+                        "description": "Step number to escalate",
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": "Why the step was escalated (e.g., 'pytest failed')",
+                    }
+                },
+                "required": ["step_id", "reason"],
+            },
+        ),
+        Tool(
+            name="get_directive_status",
+            description="Get full status of active directive — all steps, current, completion count.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+        ),
     ]
