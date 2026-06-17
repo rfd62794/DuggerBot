@@ -8,14 +8,18 @@ from duggerbot.ponds import devto, blog, youtube, calendar
 
 
 async def test_self_status_returns_pond_name(tmp_path):
-    """Run self_status.run() with mocked subprocess → result["pond"] == "self_status"."""
+    """Run morning_dispatch.run() → result["pond"] == "morning_dispatch"."""
     with patch("subprocess.run") as mock_run:
         mock_run.return_value.stdout = "200 passed in 1.5s"
         mock_run.return_value.stderr = ""
         with patch("duggerbot.version.get_version_string", return_value="0.1.0.r50"):
-            # No issues dir
-            result = await self_status.run()
-            assert result["pond"] == "self_status"
+            with patch("duggerbot.ponds.self_status._get_open_issues", return_value=[]):
+                with patch("duggerbot.ponds.self_status.youtube_run", return_value={"summary": ""}):
+                    with patch("duggerbot.ponds.self_status.calendar_run", return_value={"summary": ""}):
+                        with patch("duggerbot.ponds.self_status.blog_run", return_value={"summary": ""}):
+                            with patch("duggerbot.ponds.self_status.devto_run", return_value={"summary": ""}):
+                                result = await self_status.run()
+                                assert result["pond"] == "morning_dispatch"
 
 
 async def test_self_status_summary_contains_version(tmp_path):
@@ -24,19 +28,28 @@ async def test_self_status_summary_contains_version(tmp_path):
         mock_run.return_value.stdout = "200 passed in 1.5s"
         mock_run.return_value.stderr = ""
         with patch("duggerbot.version.get_version_string", return_value="0.1.0.r99"):
-            result = await self_status.run()
-            assert "0.1.0.r99" in result["summary"]
+            with patch("duggerbot.ponds.self_status._get_open_issues", return_value=[]):
+                with patch("duggerbot.ponds.self_status.youtube_run", return_value={"summary": ""}):
+                    with patch("duggerbot.ponds.self_status.calendar_run", return_value={"summary": ""}):
+                        with patch("duggerbot.ponds.self_status.blog_run", return_value={"summary": ""}):
+                            with patch("duggerbot.ponds.self_status.devto_run", return_value={"summary": ""}):
+                                result = await self_status.run()
+                                assert "0.1.0.r99" in result["summary"]
 
 
 async def test_self_status_no_issues_when_dir_empty(tmp_path):
-    """No issues in docs/issues → open_issues == []."""
+    """No issues in docs/issues → summary doesn't show issue section."""
     with patch("subprocess.run") as mock_run:
         mock_run.return_value.stdout = "200 passed in 1.5s"
         mock_run.return_value.stderr = ""
         with patch("duggerbot.version.get_version_string", return_value="0.1.0.r50"):
-            with patch("duggerbot.ponds.self_status._read_open_issues", return_value=[]):
-                result = await self_status.run()
-                assert result["open_issues"] == []
+            with patch("duggerbot.ponds.self_status._get_open_issues", return_value=[]):
+                with patch("duggerbot.ponds.self_status.youtube_run", return_value={"summary": ""}):
+                    with patch("duggerbot.ponds.self_status.calendar_run", return_value={"summary": ""}):
+                        with patch("duggerbot.ponds.self_status.blog_run", return_value={"summary": ""}):
+                            with patch("duggerbot.ponds.self_status.devto_run", return_value={"summary": ""}):
+                                result = await self_status.run()
+                                assert "Open Issues" not in result["summary"]
 
 
 # ---------------------------------------------------------------------------
@@ -52,14 +65,14 @@ async def test_devto_returns_stats_on_success():
     ]
     mock_response.raise_for_status = MagicMock()
 
-    with patch("duggerbot.ponds.devto.httpx.AsyncClient") as mock_client:
+    with patch("httpx.AsyncClient") as mock_client:
         mock_ctx = MagicMock()
         mock_ctx.__aenter__ = MagicMock(return_value=mock_ctx)
         mock_ctx.__aexit__ = MagicMock(return_value=None)
         mock_ctx.get = MagicMock(return_value=mock_response)
         mock_client.return_value = mock_ctx
 
-        with patch.dict("os.environ", {"DEVTO_API_KEY": "test_key"}):
+        with patch.dict("os.environ", {"DEVTO_API_KEY": "test_key"}, clear=False):
             result = await devto.run()
             assert result["article_count"] == 2
             assert result["total_reads"] == 800
@@ -83,14 +96,14 @@ async def test_devto_summary_contains_article_count():
     ]
     mock_response.raise_for_status = MagicMock()
 
-    with patch("duggerbot.ponds.devto.httpx.AsyncClient") as mock_client:
+    with patch("httpx.AsyncClient") as mock_client:
         mock_ctx = MagicMock()
         mock_ctx.__aenter__ = MagicMock(return_value=mock_ctx)
         mock_ctx.__aexit__ = MagicMock(return_value=None)
         mock_ctx.get = MagicMock(return_value=mock_response)
         mock_client.return_value = mock_ctx
 
-        with patch.dict("os.environ", {"DEVTO_API_KEY": "test_key"}):
+        with patch.dict("os.environ", {"DEVTO_API_KEY": "test_key"}, clear=False):
             result = await devto.run()
             assert "3" in result["summary"]
 
@@ -107,7 +120,7 @@ async def test_blog_returns_posts_on_success():
     ]
     mock_response.raise_for_status = MagicMock()
 
-    with patch("duggerbot.ponds.blog.httpx.AsyncClient") as mock_client:
+    with patch("httpx.AsyncClient") as mock_client:
         mock_ctx = MagicMock()
         mock_ctx.__aenter__ = MagicMock(return_value=mock_ctx)
         mock_ctx.__aexit__ = MagicMock(return_value=None)
@@ -118,7 +131,7 @@ async def test_blog_returns_posts_on_success():
             "WORDPRESS_URL": "https://test.com",
             "WORDPRESS_USER": "user",
             "WORDPRESS_APP_PASSWORD": "pass",
-        }):
+        }, clear=False):
             result = await blog.run()
             assert len(result["posts"]) == 1
 
@@ -139,7 +152,7 @@ async def test_blog_summary_contains_post_title():
     ]
     mock_response.raise_for_status = MagicMock()
 
-    with patch("duggerbot.ponds.blog.httpx.AsyncClient") as mock_client:
+    with patch("httpx.AsyncClient") as mock_client:
         mock_ctx = MagicMock()
         mock_ctx.__aenter__ = MagicMock(return_value=mock_ctx)
         mock_ctx.__aexit__ = MagicMock(return_value=None)
@@ -150,7 +163,7 @@ async def test_blog_summary_contains_post_title():
             "WORDPRESS_URL": "https://test.com",
             "WORDPRESS_USER": "user",
             "WORDPRESS_APP_PASSWORD": "pass",
-        }):
+        }, clear=False):
             result = await blog.run()
             assert "My Great Post" in result["summary"]
 
@@ -161,7 +174,7 @@ async def test_blog_summary_contains_post_title():
 
 async def test_youtube_returns_error_when_no_credentials():
     """get_credentials returns None → error key set."""
-    with patch("duggerbot.ponds.youtube.get_credentials", return_value=None):
+    with patch("duggerbot.ponds.google_auth.get_credentials", return_value=None):
         result = await youtube.run()
         assert "error" in result
         assert "credentials" in result["summary"]
@@ -169,7 +182,7 @@ async def test_youtube_returns_error_when_no_credentials():
 
 async def test_calendar_returns_error_when_no_credentials():
     """get_credentials returns None → error key set."""
-    with patch("duggerbot.ponds.calendar.get_credentials", return_value=None):
+    with patch("duggerbot.ponds.google_auth.get_credentials", return_value=None):
         result = await calendar.run()
         assert "error" in result
         assert "credentials" in result["summary"]
