@@ -16,7 +16,7 @@ import httpx
 from duggerbot.providers.gemini import call_gemini_flash
 from duggerbot.providers.openrouter import call_openrouter
 from duggerbot.telegram import send_message
-from duggerbot.ponds.self_status import run as self_status_run
+from duggerbot.ponds.self_status import run as morning_dispatch_run
 
 log = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ SLOW_INTERVAL = 60 * 60     # 60 min — nothing found 3+ times
 _consecutive_empty: int = 0
 _pond_index: int = 0
 
-POND_ROTATION = [self_status_run]  # Phase 4b adds more
+POND_ROTATION = [morning_dispatch_run]  # Phase 4b: one comprehensive dispatch
 
 HEARTBEAT_SYSTEM = (
     "You are TOBOR's research assistant. Process the task thoroughly. "

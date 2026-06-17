@@ -41,6 +41,10 @@ docs/heartbeat_response.md
 *.sqlite3
 context.db
 
+# Google OAuth tokens (runtime — not committed)
+config/*.json
+config/*.p12
+
 # uv
 .python-version
 
