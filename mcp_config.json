@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "duggerbot": {
+      "serverUrl": "http://localhost:8001/sse",
+      "headers": {
+        "Authorization": "Bearer 28d4122dbaef8c886a0e7b160dd7bfec0566d56d45929d13e45e64f0426fc2a5"
+      }
+    }
+  }
+}
