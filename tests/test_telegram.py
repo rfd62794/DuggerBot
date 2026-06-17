@@ -7,8 +7,9 @@ from duggerbot.telegram import send_message
 
 async def test_send_message_returns_true_on_success():
     """Mock httpx returns 200 → send_message() returns True."""
+    from unittest.mock import Mock
     mock_response = AsyncMock()
-    mock_response.raise_for_status = AsyncMock()
+    mock_response.raise_for_status = Mock()  # raise_for_status is sync
 
     mock_client = AsyncMock()
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)

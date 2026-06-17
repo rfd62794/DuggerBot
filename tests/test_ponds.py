@@ -27,16 +27,12 @@ async def test_self_status_summary_contains_version(tmp_path):
             assert "0.1.0.r99" in result["summary"]
 
 
-async def test_self_status_no_issues_when_dir_empty(tmp_path, monkeypatch):
-    """Empty tmp_path issues dir → open_issues == []."""
+async def test_self_status_no_issues_when_dir_empty(tmp_path):
+    """No issues in docs/issues → open_issues == []."""
     with patch("subprocess.run") as mock_run:
         mock_run.return_value.stdout = "200 passed in 1.5s"
         mock_run.return_value.stderr = ""
         with patch("duggerbot.version.get_version_string", return_value="0.1.0.r50"):
-            # Monkeypatch the issues dir to a temp empty dir
-            issues_dir = tmp_path / "issues"
-            issues_dir.mkdir()
-            with patch.object(Path, "glob", lambda self, pattern: [] if "ISSUE-*.md" in pattern else Path.glob(self, pattern)):
-                with patch.object(Path, "exists", lambda self: False if str(self).endswith("docs/issues") else Path.exists(self)):
-                    result = await self_status.run()
-                    assert result["open_issues"] == []
+            with patch("duggerbot.ponds.self_status._read_open_issues", return_value=[]):
+                result = await self_status.run()
+                assert result["open_issues"] == []
