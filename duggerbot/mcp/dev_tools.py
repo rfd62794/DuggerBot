@@ -272,9 +272,10 @@ async def handle_dispatch_to_cline(arguments: dict) -> list[TextContent]:
 
     timeout = int(os.environ.get("CLINE_TIMEOUT_SECONDS", "300"))
     repo_root = str(Path(__file__).parent.parent.parent)
+    cline_cmd = os.environ.get("CLINE_PATH", "cline")
 
     proc = await asyncio.create_subprocess_exec(
-        "cline", task,
+        cline_cmd, task,
         "--provider", "ollama",
         "--model", model,
         "--auto-approve", "true",
