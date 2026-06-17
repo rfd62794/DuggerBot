@@ -79,14 +79,15 @@ def _parse_pytest_summary(output: str) -> str:
     """
     Parse pytest -q output for the summary line.
     Handles: "X passed", "X passed, Y failed", "X passed, Y failed, Z skipped"
-    Returns JSON string.
+    Returns JSON string with full output in raw_summary.
     """
     passed = failed = skipped = 0
-    raw_summary = ""
+    summary_line = ""
+    # Find summary line from the end
     for line in reversed(output.splitlines()):
         line = line.strip()
         if "passed" in line or "failed" in line or "error" in line:
-            raw_summary = line
+            summary_line = line
             for match in re.finditer(r'(\d+)\s+(passed|failed|skipped|error)', line):
                 count, label = int(match.group(1)), match.group(2)
                 if label == "passed":
@@ -96,6 +97,8 @@ def _parse_pytest_summary(output: str) -> str:
                 elif label == "skipped":
                     skipped = count
             break
+    # Include full output (truncated if too long)
+    raw_summary = output[:2000] if len(output) > 2000 else output
     return json.dumps({
         "passed": passed,
         "failed": failed,
