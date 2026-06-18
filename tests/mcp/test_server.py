@@ -204,7 +204,7 @@ async def test_lifespan_mcp_list_tools(tmp_path, monkeypatch):
         mcp_server = test_app.state.mcp_server
         handler = mcp_server.request_handlers[ListToolsRequest]
         result = await handler(ListToolsRequest(method="tools/list"))
-        assert len(result.root.tools) == 24
+        assert len(result.root.tools) == 25
 
 
 async def test_lifespan_mcp_call_tool(tmp_path, monkeypatch):

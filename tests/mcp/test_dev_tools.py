@@ -21,6 +21,7 @@ from duggerbot.mcp.dev_tools import (
     handle_get_version,
     handle_list_context,
     handle_read_context,
+    handle_verify_floor,
     handle_verify_test_floor,
     handle_write_context,
 )
@@ -423,3 +424,33 @@ async def test_get_logs_returns_error_when_file_missing():
         data = json.loads(result[0].text)
         assert "error" in data
         assert data["lines"] == []
+
+
+# ---------------------------------------------------------------------------
+# handle_verify_floor — cross-repo pytest runner
+# ---------------------------------------------------------------------------
+
+async def test_verify_floor_returns_passed_count_for_valid_repo(tmp_path):
+    """Valid repo_path runs pytest and returns structured result with repo_path."""
+    mock_proc = AsyncMock()
+    mock_proc.returncode = 0
+    mock_proc.communicate.return_value = (b"5 passed in 0.5s", b"")
+
+    with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+        result = await handle_verify_floor({"repo_path": str(tmp_path)})
+        data = json.loads(result[0].text)
+
+    assert data["passed"] == 5
+    assert data["failed"] == 0
+    assert data["floor_met"] is True
+    assert data["repo_path"] == str(tmp_path)
+
+
+async def test_verify_floor_returns_error_for_invalid_path():
+    """Missing or invalid repo_path returns error without running pytest."""
+    result = await handle_verify_floor({"repo_path": "/nonexistent/path/xyz"})
+    data = json.loads(result[0].text)
+
+    assert data["floor_met"] is False
+    assert "error" in data
+    assert data["passed"] == 0

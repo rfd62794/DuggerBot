@@ -68,8 +68,8 @@ def test_get_cost_today_no_required_params():
 
 
 def test_dev_tool_list_has_seven_tools():
-    """get_dev_tool_list() returns list of length 19 (14 + 5 directive tools)."""
-    assert len(get_dev_tool_list()) == 19
+    """get_dev_tool_list() returns list of length 20 (14 + 5 directive tools + verify_floor)."""
+    assert len(get_dev_tool_list()) == 20
 
 
 def test_verify_test_floor_schema_valid():

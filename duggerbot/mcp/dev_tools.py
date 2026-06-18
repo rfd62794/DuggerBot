@@ -75,6 +75,35 @@ async def handle_verify_test_floor(arguments: dict) -> list[TextContent]:
         }))]
 
 
+async def handle_verify_floor(arguments: dict) -> list[TextContent]:
+    """Run pytest in an arbitrary repo root. Return structured pass/fail/skip counts."""
+    repo_path = arguments.get("repo_path", "")
+    if not repo_path or not Path(repo_path).is_dir():
+        return [TextContent(type="text", text=json.dumps({
+            "repo_path": repo_path,
+            "error": f"Invalid or missing repo_path: {repo_path!r}",
+            "passed": 0, "failed": 0, "skipped": 0,
+            "floor_met": False, "raw_summary": "",
+        }))]
+    try:
+        _, stdout, stderr = await _run_command(
+            [sys.executable, "-m", "pytest", "--tb=line", "-q"],
+            timeout=120.0,
+            cwd=repo_path,
+        )
+        combined = stdout + "\n" + stderr if stderr else stdout
+        result = json.loads(_parse_pytest_summary(combined))
+        result["repo_path"] = repo_path
+        return [TextContent(type="text", text=json.dumps(result))]
+    except asyncio.TimeoutError:
+        return [TextContent(type="text", text=json.dumps({
+            "repo_path": repo_path,
+            "error": "pytest timed out after 120 seconds",
+            "passed": 0, "failed": 0, "skipped": 0,
+            "floor_met": False, "raw_summary": "",
+        }))]
+
+
 def _parse_pytest_summary(output: str) -> str:
     """
     Parse pytest -q output for the summary line.
@@ -505,4 +534,5 @@ DEV_TOOL_HANDLERS = {
     "complete_step": handle_complete_step,
     "escalate_step": handle_escalate_step,
     "get_directive_status": handle_get_directive_status,
+    "verify_floor": handle_verify_floor,
 }

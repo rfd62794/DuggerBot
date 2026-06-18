@@ -270,4 +270,18 @@ def get_dev_tool_list() -> list[Tool]:
                 "properties": {},
             },
         ),
+        Tool(
+            name="verify_floor",
+            description="Run pytest in an arbitrary repo root and return pass/fail/skip counts. Use for cross-repo floor verification.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "repo_path": {
+                        "type": "string",
+                        "description": "Absolute path to repo root (e.g. C:\\Github\\ClineMCP)",
+                    },
+                },
+                "required": ["repo_path"],
+            },
+        ),
     ]
