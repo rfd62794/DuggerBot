@@ -12,6 +12,7 @@ from duggerbot.mcp.dev_tools import (
     _run_command,
     handle_check_coverage,
     handle_check_for_update,
+    handle_complete_step,
     handle_delete_context,
     handle_dispatch_to_cline,
     handle_get_logs,
@@ -454,3 +455,106 @@ async def test_verify_floor_returns_error_for_invalid_path():
     assert data["floor_met"] is False
     assert "error" in data
     assert data["passed"] == 0
+
+
+# ---------------------------------------------------------------------------
+# handle_dispatch_to_cline — CLINE_PROVIDER env var tests
+# ---------------------------------------------------------------------------
+
+async def test_dispatch_uses_env_provider(monkeypatch):
+    """CLINE_PROVIDER=anthropic → subprocess called with --provider anthropic."""
+    monkeypatch.setenv("CLINE_PROVIDER", "anthropic")
+    mock_proc = AsyncMock()
+    mock_proc.returncode = 0
+    mock_proc.communicate.return_value = (b"done", b"")
+
+    with patch("asyncio.create_subprocess_exec", return_value=mock_proc) as mock_exec:
+        result = await handle_dispatch_to_cline({"task": "fix bug", "model": "claude-3"})
+        data = json.loads(result[0].text)
+
+    assert data["success"] is True
+    assert data["provider"] == "anthropic"
+    args = mock_exec.call_args[0]
+    assert "--provider" in args
+    assert "anthropic" in args
+
+
+async def test_dispatch_defaults_to_anthropic(monkeypatch):
+    """CLINE_PROVIDER not set → subprocess called with --provider anthropic (default)."""
+    monkeypatch.delenv("CLINE_PROVIDER", raising=False)
+    mock_proc = AsyncMock()
+    mock_proc.returncode = 0
+    mock_proc.communicate.return_value = (b"done", b"")
+
+    with patch("asyncio.create_subprocess_exec", return_value=mock_proc) as mock_exec:
+        result = await handle_dispatch_to_cline({"task": "fix bug", "model": "claude-3"})
+        data = json.loads(result[0].text)
+
+    assert data["success"] is True
+    assert data["provider"] == "anthropic"
+    args = mock_exec.call_args[0]
+    assert "--provider" in args
+    assert "anthropic" in args
+
+
+async def test_dispatch_not_ollama(monkeypatch):
+    """CLINE_PROVIDER not set → subprocess NOT called with --provider ollama."""
+    monkeypatch.delenv("CLINE_PROVIDER", raising=False)
+    mock_proc = AsyncMock()
+    mock_proc.returncode = 0
+    mock_proc.communicate.return_value = (b"done", b"")
+
+    with patch("asyncio.create_subprocess_exec", return_value=mock_proc) as mock_exec:
+        await handle_dispatch_to_cline({"task": "fix bug", "model": "claude-3"})
+
+    args = mock_exec.call_args[0]
+    assert "ollama" not in args
+
+
+# ---------------------------------------------------------------------------
+# handle_complete_step — memory write tests
+# ---------------------------------------------------------------------------
+
+async def test_complete_step_writes_memory_on_final(monkeypatch):
+    """advance_step returns False (final step) → write_context called with memory:directive: key."""
+    monkeypatch.setenv("DB_PATH", ":memory:")
+
+    mock_directive = {
+        "id": "test-dir-001",
+        "title": "Test Directive",
+        "description": "Test",
+        "steps": [
+            {"id": 1, "status": "complete"},
+            {"id": 2, "status": "complete"},
+        ],
+    }
+
+    with patch("duggerbot.mcp.dev_tools.advance_step", return_value=False), \
+         patch("duggerbot.mcp.dev_tools.get_active_directive", return_value=mock_directive), \
+         patch("duggerbot.mcp.dev_tools.write_context") as mock_write:
+        result = await handle_complete_step({"step_id": 2})
+        data = json.loads(result[0].text)
+
+    assert data["success"] is True
+    assert data["has_more_steps"] is False
+    mock_write.assert_called()
+    call_args = mock_write.call_args[0]
+    assert "memory:directive:test-dir-001:complete" in call_args[0]
+
+
+async def test_complete_step_no_memory_on_intermediate(monkeypatch):
+    """advance_step returns True (more steps) → write_context NOT called with memory: key."""
+    monkeypatch.setenv("DB_PATH", ":memory:")
+
+    with patch("duggerbot.mcp.dev_tools.advance_step", return_value=True), \
+         patch("duggerbot.mcp.dev_tools.write_context") as mock_write:
+        result = await handle_complete_step({"step_id": 1})
+        data = json.loads(result[0].text)
+
+    assert data["success"] is True
+    assert data["has_more_steps"] is True
+    # write_context may be called for directive updates, but not for memory: key
+    if mock_write.called:
+        for call in mock_write.call_args_list:
+            key = call[0][0]
+            assert not key.startswith("memory:directive:")

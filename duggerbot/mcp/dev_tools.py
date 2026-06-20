@@ -54,6 +54,35 @@ async def _run_command(
 
 
 # ---------------------------------------------------------------------------
+# Completion memory helper
+# ---------------------------------------------------------------------------
+
+async def _write_completion_memory_to_store(directive: dict) -> None:
+    """Write directive completion summary to context store under memory: namespace.
+
+    Key: memory:directive:{id}:complete
+    Value: JSON summary — id, title, steps completed, completed_at
+    """
+    import datetime
+    directive_id = directive.get("id", "unknown")
+    steps = directive.get("steps", [])
+    completed_count = sum(1 for s in steps if s.get("status") == "complete")
+
+    summary = {
+        "directive_id": directive_id,
+        "title": directive.get("title", ""),
+        "description": directive.get("description", ""),
+        "steps_completed": completed_count,
+        "total_steps": len(steps),
+        "status": "complete",
+        "completed_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    }
+
+    key = f"memory:directive:{directive_id}:complete"
+    await write_context(key, json.dumps(summary))
+
+
+# ---------------------------------------------------------------------------
 # Tool handlers
 # ---------------------------------------------------------------------------
 
@@ -306,7 +335,7 @@ async def handle_list_context(arguments: dict) -> list[TextContent]:
 
 
 async def handle_dispatch_to_cline(arguments: dict) -> list[TextContent]:
-    """Dispatch a task to Cline CLI headless with Ollama provider."""
+    """Dispatch a task to Cline CLI headless. Provider and model from env vars."""
     task = arguments.get("task", "")
     model = arguments.get("model", "")
     if not task or not model:
@@ -315,10 +344,11 @@ async def handle_dispatch_to_cline(arguments: dict) -> list[TextContent]:
     timeout = int(os.environ.get("CLINE_TIMEOUT_SECONDS", "300"))
     repo_root = str(Path(__file__).parent.parent.parent)
     cline_cmd = os.environ.get("CLINE_PATH", "cline")
+    provider = os.environ.get("CLINE_PROVIDER", "anthropic")  # no longer defaults to ollama
 
     proc = await asyncio.create_subprocess_exec(
         cline_cmd, task,
-        "--provider", "ollama",
+        "--provider", provider,
         "--model", model,
         "--auto-approve", "true",
         "--cwd", repo_root,
@@ -336,6 +366,7 @@ async def handle_dispatch_to_cline(arguments: dict) -> list[TextContent]:
             "success": proc.returncode == 0,
             "output": output,
             "model": model,
+            "provider": provider,
             "error": None,
         }))]
     except asyncio.TimeoutError:
@@ -344,6 +375,7 @@ async def handle_dispatch_to_cline(arguments: dict) -> list[TextContent]:
             "success": False,
             "output": "Timed out",
             "model": model,
+            "provider": provider,
             "error": "timeout",
         }))]
     except Exception as e:
@@ -351,6 +383,7 @@ async def handle_dispatch_to_cline(arguments: dict) -> list[TextContent]:
             "success": False,
             "output": str(e),
             "model": model,
+            "provider": provider,
             "error": str(e),
         }))]
 
@@ -454,9 +487,16 @@ async def handle_complete_step(arguments: dict) -> list[TextContent]:
     step_id = arguments.get("step_id", 0)
     if not step_id:
         return [TextContent(type="text", text=json.dumps({"error": "step_id is required"}))]
-    
+
     try:
         has_more = await advance_step(int(step_id))
+
+        if not has_more:
+            # Directive complete — write to memory namespace in context store
+            directive = await get_active_directive()
+            if directive:
+                await _write_completion_memory_to_store(directive)
+
         return [TextContent(type="text", text=json.dumps({
             "success": True,
             "has_more_steps": has_more,

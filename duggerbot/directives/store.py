@@ -5,8 +5,10 @@ Keys used:
   directive:active:current   → current step number (int)
   directive:active:status    → overall status string
   directive:history:{id}     → completed directive JSON
+  memory:directive:{id}:complete → completion summary
 """
 import json
+import datetime
 from duggerbot.context_store import write_context, read_context, delete_context
 from duggerbot.directives.schema import Directive, DirectiveStep, StepStatus
 
@@ -92,26 +94,50 @@ async def escalate_step(step_id: int, reason: str) -> None:
     directive = await get_active_directive()
     if directive is None:
         return
-    
+
     steps = directive.get("steps", [])
     if 1 <= step_id <= len(steps):
         steps[step_id - 1]["status"] = "escalated"
         directive["steps"] = steps
         await write_context(DIRECTIVE_ACTIVE_KEY, json.dumps(directive))
-    
+
     await write_context(DIRECTIVE_STATUS_KEY, f"escalated:{reason}")
 
 
+async def _write_completion_memory(directive: Directive) -> None:
+    """Write directive completion summary to memory: namespace in context store."""
+    directive_id = directive.get("id", "unknown")
+    steps = directive.get("steps", [])
+    completed = sum(1 for s in steps if s.get("status") == "complete")
+
+    summary = {
+        "directive_id": directive_id,
+        "title": directive.get("title", ""),
+        "description": directive.get("description", ""),
+        "steps_completed": completed,
+        "total_steps": len(steps),
+        "status": "complete",
+        "completed_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    }
+    await write_context(
+        f"memory:directive:{directive_id}:complete",
+        json.dumps(summary),
+    )
+
+
 async def archive_directive(directive_id: str) -> None:
-    """Move active directive to history, clear active keys."""
+    """Move active directive to history, write completion memory, clear active keys."""
     directive = await get_active_directive()
     if directive is None:
         return
-    
+
+    # Write completion memory before archiving
+    await _write_completion_memory(directive)
+
     # Write to history
     history_key = f"directive:history:{directive_id}"
     await write_context(history_key, json.dumps(directive))
-    
+
     # Clear active keys
     await delete_context(DIRECTIVE_ACTIVE_KEY)
     await delete_context(DIRECTIVE_CURRENT_KEY)
