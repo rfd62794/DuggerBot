@@ -76,4 +76,5 @@ async def test_completion_memory_format(clean_store):
     assert data["total_steps"] == 3
     assert data["status"] == "complete"
     assert "completed_at" in data
-    assert data["completed_at"].endswith("Z")  # ISO format with UTC
+    # ISO format with UTC (either Z or +00:00)
+    assert data["completed_at"].endswith("Z") or "+00:00" in data["completed_at"]

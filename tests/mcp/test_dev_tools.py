@@ -370,8 +370,9 @@ async def test_handle_delete_context_returns_deleted_true():
         assert data["deleted"] is True
 
 
-async def test_handle_dispatch_to_cline_returns_output():
+async def test_handle_dispatch_to_cline_returns_output(monkeypatch):
     """Handler calls cline with correct args and returns subprocess output."""
+    monkeypatch.setenv("CLINE_PROVIDER", "ollama")
     mock_proc = AsyncMock()
     mock_proc.returncode = 0
     mock_proc.communicate.return_value = (b'{"result": "done"}', b"")
@@ -392,6 +393,7 @@ async def test_handle_dispatch_to_cline_returns_output():
 
         assert data["success"] is True
         assert data["model"] == "ollama/qwen3"
+        assert data["provider"] == "ollama"
 
 
 async def test_get_logs_returns_tail_lines(tmp_path):
