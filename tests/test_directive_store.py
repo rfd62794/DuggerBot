@@ -2,6 +2,7 @@
 
 import json
 import pytest
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 from duggerbot.directives.store import (
@@ -13,13 +14,12 @@ from duggerbot.directives.store import (
 
 
 @pytest.fixture
-async def clean_store(monkeypatch):
-    """Use in-memory database for isolation."""
-    monkeypatch.setenv("DB_PATH", ":memory:")
-    from duggerbot.context_store import initialize
-    await initialize()
+async def clean_store(tmp_path, monkeypatch):
+    """Use temporary database for isolation."""
+    db_path = tmp_path / "test_directive.db"
+    monkeypatch.setattr("duggerbot.context_store.DB_PATH", db_path)
     yield
-    # Cleanup happens automatically with :memory:
+    # Cleanup happens automatically with tmp_path
 
 
 # ---------------------------------------------------------------------------
